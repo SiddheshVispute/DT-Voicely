@@ -15,6 +15,30 @@ export const message = (role, text) => ({
   at: new Date().toISOString(),
 });
 export function parseDetails(text, c, now = new Date()) {
+  const spokenNumbers = [
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+  ];
+  text = text.replace(
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)(?:\s+(fifteen|thirty|forty[- ]five))?\s*(?:o['’]?clock\s*)?(a\.?\s*m\.?|p\.?\s*m\.?|in the morning|in the afternoon|in the evening)\b/gi,
+    (_, hour, part, period) =>
+      `${spokenNumbers.indexOf(hour.toLowerCase()) + 1}:${part ? (/fifteen/i.test(part) ? "15" : /thirty/i.test(part) ? "30" : "45") : "00"} ${/^(?:p|in the (?:afternoon|evening))/i.test(period) ? "PM" : "AM"}`,
+  );
+  text = text.replace(
+    /\b(\d{1,2})\s+in the (morning|afternoon|evening)\b/gi,
+    (_, hour, period) =>
+      `${hour} ${period.toLowerCase() === "morning" ? "AM" : "PM"}`,
+  );
   const lower = text.toLowerCase(),
     out = {};
   const service = c.services.find(
@@ -25,7 +49,7 @@ export function parseDetails(text, c, now = new Date()) {
   );
   if (service) out.serviceId = service.id;
   const name = text.match(
-    /(?:my name is|name['’]?s|i am|i['’]m|for (?:a customer named|customer|me,?))\s+([\p{L}][\p{L}\p{M} .’'-]*?)(?=\s+(?:and|tomorrow|today|on|at|for|i want|i would)|[,!?\n]|$)/iu,
+    /(?:my name is|name['’]?s|i am|i['’]m|for (?:a customer named|customer|me,?))\s+([\p{L}][\p{L}\p{M} .’'-]*?)(?=\s+(?:and|tomorrow|today|on|at|for|i want|i would)|[,.!?\n]|$)/iu,
   );
   if (name) out.customer = name[1].trim().replace(/\.$/, "");
   if (!out.customer) {
@@ -172,7 +196,9 @@ export async function replyTo(
     return result("Thank you for contacting us. Take care!");
   }
   if (
-    /\b(?:services|offer|treatments|price|pricing|cost)\b/.test(lower) &&
+    /\b(?:services|offer|treatments|price|pricing|cost|how much|what do you do)\b/.test(
+      lower,
+    ) &&
     !/\b(?:book|reserve|schedule)\b/.test(lower)
   )
     return result(
@@ -189,7 +215,7 @@ export async function replyTo(
     );
   }
   const yes =
-    /^(yes|yes please|confirm|confirmed|go ahead|please confirm|book it|that works|correct|sure)[.! ]*$/.test(
+    /^(yes|yes,? please|yeah|yep|okay,? confirm|confirm|confirm (?:the )?(?:booking|appointment)|confirmed|go ahead|please confirm|book it|that works|correct|sure)[.! ]*$/.test(
       lower,
     );
   const no = /^(no|no thanks|never mind|nevermind|start over)[.! ]*$/.test(
@@ -285,7 +311,7 @@ export async function replyTo(
   const bookingIntent =
     /\b(?:book|appointment|schedule|reserve|consultation|therapy|follow[ -]?up)\b/.test(
       lower,
-    );
+    ) || !!(parsed.serviceId && /\b(?:want|need|like|request)\b/.test(lower));
   if (d.phase === "idle" && !bookingIntent) {
     if (
       /^(hi|hello|hey|good morning|good afternoon|thanks|thank you)[.! ]*$/.test(
@@ -304,7 +330,7 @@ export async function replyTo(
     d.phase === "collect" &&
     !d.draft.customer &&
     /^[\p{L}][\p{L}\p{M} .’'-]{1,79}$/u.test(text.trim()) &&
-    !/book|appointment|tomorrow|today|consultation|therapy|follow|confirm|yes|no/i.test(
+    !/book|appointment|tomorrow|today|consultation|therapy|follow|confirm|yes|no|^(?:hi|hello|help|what|why|how|i don['’]?t|i do not|not sure)\b/i.test(
       text,
     )
   )

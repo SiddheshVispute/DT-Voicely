@@ -1,6 +1,11 @@
 import { it, expect, vi, afterEach } from "vitest";
 import { createSpeech, speechSupported } from "../src/services/speech";
-afterEach(() => vi.unstubAllGlobals());
+const services = [];
+afterEach(() => {
+  for (const service of services.splice(0)) service.dispose();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 function environment() {
   let recognizer;
   class Recognition {
@@ -27,6 +32,7 @@ function environment() {
     onStatus = vi.fn(),
     onError = vi.fn(),
     service = createSpeech({ onText, onStatus, onError });
+  services.push(service);
   return {
     service,
     onText,
@@ -81,6 +87,35 @@ it("keeps a clear text fallback when recognition is unavailable", () => {
   expect(speechSupported()).toBe(false);
   s.listen();
   expect(onError).toHaveBeenCalledWith(
-    expect.stringContaining("text conversation"),
+    expect.stringContaining("On-device voice"),
   );
+});
+it("reports Connecting until recognition actually starts", () => {
+  const e = environment();
+  e.service.listen();
+  expect(e.onStatus).toHaveBeenLastCalledWith("Connecting");
+  e.recognition.onstart();
+  expect(e.onStatus).toHaveBeenLastCalledWith("Listening");
+});
+it("times out a recognizer that never starts instead of claiming to listen", () => {
+  vi.useFakeTimers();
+  const e = environment();
+  e.service.listen();
+  vi.advanceTimersByTime(8001);
+  expect(e.onStatus).toHaveBeenLastCalledWith("Unavailable");
+  expect(e.onError).toHaveBeenCalledWith(
+    expect.stringContaining("did not start"),
+  );
+  expect(e.recognition.onresult).toBeNull();
+});
+it("times out a stalled recognition turn without creating a message", () => {
+  vi.useFakeTimers();
+  const e = environment();
+  e.service.listen();
+  e.recognition.onstart();
+  vi.advanceTimersByTime(18001);
+  expect(e.onError).toHaveBeenCalledWith(
+    expect.stringContaining("No speech result"),
+  );
+  expect(e.onText).not.toHaveBeenCalled();
 });

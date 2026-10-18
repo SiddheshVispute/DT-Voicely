@@ -112,7 +112,7 @@ export default function CallLogs() {
                   <td>
                     <button
                       className="text-link"
-                      aria-label={`Inspect conversation ${c.id.slice(0, 6)}`}
+                      aria-label={`Transcript for conversation ${c.id.slice(0, 6)}`}
                       onClick={() => setParams({ call: c.id })}
                     >
                       Transcript <ArrowUpRight size={15} />

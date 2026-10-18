@@ -9,7 +9,7 @@ test("complete persisted demo: book, inspect, conflict, cancel, release, refresh
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /A warm welcome/ }),
+    page.getByRole("heading", { name: /Every conversation/ }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Try Live Demo" }).first().click();
   await expect(
@@ -27,7 +27,7 @@ test("complete persisted demo: book, inspect, conflict, cancel, release, refresh
   }
   await nav("Voice Agent");
   await page
-    .getByRole("button", { name: "Start conversation", exact: true })
+    .getByRole("button", { name: "Start text conversation", exact: true })
     .click();
   const transcript = page.getByRole("log");
   async function say(text) {
@@ -76,7 +76,7 @@ test("complete persisted demo: book, inspect, conflict, cancel, release, refresh
     .getByRole("textbox", { name: "Search appointments", exact: true })
     .fill("Professor Taylor");
   await page
-    .getByRole("button", { name: "View Professor Taylor", exact: true })
+    .getByRole("button", { name: "Details for Professor Taylor", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText(a.reference);
@@ -91,7 +91,9 @@ test("complete persisted demo: book, inspect, conflict, cancel, release, refresh
   await page
     .getByRole("textbox", { name: "Search conversations", exact: true })
     .fill("Professor Taylor");
-  await page.getByRole("button", { name: /Inspect conversation/ }).click();
+  await page
+    .getByRole("button", { name: /Transcript for conversation/ })
+    .click();
   await expect(dialog).toContainText("What services do you offer?");
   await expect(dialog).toContainText("You’re booked!");
   await expect(dialog).toContainText(a.reference);
@@ -118,7 +120,7 @@ test("complete persisted demo: book, inspect, conflict, cancel, release, refresh
     .getByRole("textbox", { name: "Search appointments", exact: true })
     .fill("Professor Taylor");
   await page
-    .getByRole("button", { name: "View Professor Taylor", exact: true })
+    .getByRole("button", { name: "Details for Professor Taylor", exact: true })
     .click();
   page.once("dialog", (d) => d.accept());
   await page
@@ -128,7 +130,7 @@ test("complete persisted demo: book, inspect, conflict, cancel, release, refresh
   await page.getByRole("button", { name: "Close dialog", exact: true }).click();
   await nav("Voice Agent");
   await page
-    .getByRole("button", { name: "Start conversation", exact: true })
+    .getByRole("button", { name: "Start text conversation", exact: true })
     .click();
   await say(`Book a consultation on ${day} at 2 PM`);
   await say("My name is Riley Adams");
@@ -213,6 +215,7 @@ test("manual review, filters, settings and reset", async ({
     "Willow Wellness",
   );
   await nav("Voice Agent");
+  await page.locator(".agent-config summary").click();
   await page.getByLabel("Receptionist name", { exact: true }).fill("Ava");
   await page
     .getByRole("button", { name: "Save configuration", exact: true })
@@ -220,6 +223,8 @@ test("manual review, filters, settings and reset", async ({
   await expect(
     page.getByRole("heading", { name: "Ava, at your service." }),
   ).toBeVisible();
+  await page.locator(".agent-config summary").click();
+  await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({
     path: `screenshots/${testInfo.project.name}-agent.png`,
     fullPage: true,

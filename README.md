@@ -14,13 +14,14 @@ npm.cmd ci
 npm.cmd run dev
 ```
 
-Open **http://127.0.0.1:5173**. Vite prints a different port if 5173 is occupied. `npm` also works in shells without the Windows PowerShell execution-policy restriction; `npm.cmd` avoids that restriction.
+Open **http://127.0.0.1:5188**. Voicely uses a dedicated strict port so a different local app cannot silently replace its preview. `npm` also works in shells without the Windows PowerShell execution-policy restriction; `npm.cmd` avoids that restriction.
 
 On Windows you can also double-click **`start-voicely.cmd`**. It installs missing dependencies and opens the application in your browser. Keep its terminal open while using the demo.
 
 ```powershell
 npm.cmd test                 # Booking, dialogue, persistence, speech, PostgreSQL tests
 npm.cmd run test:e2e         # Desktop and mobile browser journeys (local server required)
+npm.cmd run test:voice       # Real model + synthetic microphone + persisted booking (first download is slow)
 npm.cmd run build           # Production static bundle in dist/
 npm.cmd run preview         # Serve production bundle, normally port 4173
 npm.cmd run format          # Format JavaScript, JSX, CSS, JSON, and documentation
@@ -31,7 +32,7 @@ Browser tests use installed Google Chrome through Playwright's `chrome` channel.
 ## Professor demonstration
 
 1. Open the landing page and choose **Try Live Demo**. No registration is required.
-2. Open **Voice Agent**, then **Start conversation**.
+2. Open **Voice Agent**. Type immediately, use a suggested prompt, or choose **Start text conversation**. No microphone setup is needed for the complete typed demo.
 3. Type `What services do you offer?`.
 4. Type `I would like to book a consultation`.
 5. Type `My name is Professor Taylor`.
@@ -111,9 +112,15 @@ The active in-memory dialogue is not restored after a full page refresh. Previou
 
 ### Speech compatibility and privacy
 
-Chrome/Edge commonly expose `SpeechRecognition` or `webkitSpeechRecognition`; actual availability depends on browser, OS, microphone permissions, network service, and secure origin. Localhost is permitted; deployed sites need HTTPS. Safari/Firefox support varies. Text always provides the complete booking flow.
+Choose **Start voice conversation** to speak and hear replies. The default **On-device voice** engine uses the quantized English Whisper Tiny model through Transformers.js in a background worker. First use downloads about **70 MB** of runtime/model data and may take **1–2 minutes**, depending on the connection. Progress is visible; typing remains usable. Downloaded model files are cached by the browser. Subsequent model initialization is faster. No account, paid inference endpoint, or API key is used, and microphone recordings are not uploaded for on-device recognition.
 
-No microphone starts on load or when starting a text conversation. Click the microphone to start a recognition turn. It stops after a final result. Permission/network/no-speech errors explain the text fallback. Recognition handlers are detached before synthesis starts so the assistant does not transcribe its own response. Result session identifiers and the application submission lock prevent duplicate speech events from producing repeated actions. End/disposal cancels synthesis and recognition. Spoken replies are opt-in and saved in agent settings. Browser recognition may send audio to the browser vendor; this application itself does not upload or retain audio.
+Microphone capture uses **MediaRecorder**, with an actual audio level meter, silence detection, **Finish speaking**, and a 20-second recording limit. The audio context is unlocked during the user's click; capture never starts during page load. Audio is decoded, resampled to 16 kHz, and processed locally. Recording and speech synthesis do not run together. Listening resumes after an assistant reply during a voice conversation. **Pause voice**, **End conversation**, and disposal release microphone tracks. Recorded audio is transient in memory; transcripts are persisted.
+
+The alternate **Browser recognition** engine uses `SpeechRecognition`/`webkitSpeechRecognition` where available. This API has limited browser availability and may use a vendor's online service. A recognizer is labelled **Connecting** until its real start event arrives. Startup and result timeouts prevent indefinite fake “Listening” states. Permission, network, missing-microphone, and empty-result errors are actionable. See [MDN SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition) and [microphone requirements](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
+
+Voice conversations start with spoken replies enabled. The speaker button mutes/unmutes them without disabling the microphone; **Play reply** replays the last response. Text-chat speech preferences remain configurable under **Receptionist settings**. Browser playback restrictions are shown without blocking the microphone. Model and browser documentation: [Transformers.js pipelines](https://huggingface.co/docs/transformers.js/pipelines), [Whisper Tiny English model](https://huggingface.co/onnx-community/whisper-tiny.en).
+
+Use localhost or HTTPS and grant microphone access. WebAssembly, Web Workers, Web Audio, and MediaRecorder are required for on-device voice. The included recording-based test verifies real transcription and booking through a synthetic microphone, not physical microphone hardware or audible speaker output. English is supported by the local model; text remains the complete fallback if first-use downloads or browser audio are unavailable.
 
 ## Optional Supabase setup
 
@@ -176,16 +183,16 @@ See **`TEST_RESULTS.md`** for the final run results and exact verification bound
 - Local Demo Mode is deliberately unauthenticated, browser-local, and suitable for fictional data. Anyone with browser/profile access can inspect or alter its data. Use the authenticated cloud backend for a real tenant.
 - A single owner and calendar are implemented per tenant. Staff resources, recurring appointments, rescheduling, email delivery, payments, customer identity verification, real telephony, and public customer access are not implemented.
 - The deterministic engine handles bounded intents, not arbitrary conversational reasoning or multilingual requests. Phone numbers are not required and no marketing/contact permission is inferred.
-- No recordings or audio files are saved. Text transcripts contain the information a customer types/speaks; configure production retention, customer consent, monitoring, and backups before using real personal data.
+- Customer recordings are not saved; audio is held transiently while transcribing. The committed synthetic test fixture is explicitly labelled as generated test audio. Text transcripts contain the information a customer types/speaks; configure production retention, customer consent, monitoring, and backups before using real personal data.
 - Local persistence is not a backup. Clearing browser data, private browsing, or changing the port/origin can remove or isolate demo records. Schema version is 1; unknown schema data is backed up locally and reset rather than silently misread.
-- Browser microphone hardware, real speech recognition/transcription quality, audible speech output, real iOS Safari behavior, hosted Supabase connectivity, and Vercel deployment were not independently verified.
+- Actual on-device transcription and a synthetic-microphone booking journey were verified. Physical microphone hardware, different accents/noise conditions, audible speaker output, physical iOS Safari behavior, hosted Supabase connectivity, and Vercel deployment remain unverified.
 
 ## Troubleshooting
 
-- **No microphone:** click the mic after starting a conversation, allow permission, and use localhost/HTTPS. If unsupported/offline, type instead. Enable “Speak responses aloud” and save if you want synthesis.
+- **No microphone:** choose **Start voice conversation**, wait for first-time model setup, and allow the microphone. The interface shows Connecting, Listening, or a specific error. Use **Finish speaking** to submit a recording, **Pause voice** to stop capture, or type immediately. If Browser recognition stalls, switch to On-device voice.
 - **Slot rejected:** check service length, Sunday closures, timezone, buffers, minimum notice, advance window, and an existing sample booking (normally 11 AM on the next open day). Choose an offered alternative.
 - **Storage error:** allow site storage and free quota. Voicely will not report a successful write when it fails. Recovery backups may be inspected through browser developer tools.
 - **Cloud connect error:** verify public configuration, applied SQL migration, Auth user/password, and RLS/function grants. Demo Mode remains independently usable; cloud failures are displayed.
 - **Build/test permissions on this Windows machine:** the managed sandbox may deny Vite ports or Vitest temp-file renames. Run the listed commands in your normal terminal. This session used approved execution outside that sandbox for the final tests and preview.
-- **Port occupied:** use `npm.cmd run dev -- --port 5174`; adjust the Playwright base URL if testing that port.
+- **Port occupied:** use `npm.cmd run dev -- --port 5189`; set `VOICELY_TEST_URL` when testing that port. The default is strictly 5188 so another app on 5173 cannot be mistaken for Voicely.
 - **PowerShell blocks npm.ps1:** use the documented `npm.cmd`/`npx.cmd` commands.

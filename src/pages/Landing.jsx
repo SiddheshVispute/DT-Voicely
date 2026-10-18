@@ -33,24 +33,24 @@ export default function Landing() {
         <section className="hero">
           <div className="hero-copy">
             <span className="pill">
-              <i /> YOUR NEXT GREAT FIRST IMPRESSION
+              <i /> AN AI RECEPTIONIST. A REAL BUSINESS ASSISTANT.
             </span>
             <h1>
-              A warm welcome.
-              <br />A little less <em>work.</em>
+              Every conversation.
+              <br />A new <em>possibility.</em>
             </h1>
             <p>
-              Your business has a lot to say. Give it a receptionist that
-              listens, answers, and turns conversations into confirmed
-              appointments.
+              Meet the receptionist that turns “hello” into “you’re booked.”
+              Answer questions, find the right time, and keep your business
+              moving — all in one workspace.
             </p>
             <div className="hero-actions">
               <Link className="button" to="/app">
                 Try Live Demo <ArrowRight size={18} />
               </Link>
-              <a className="button secondary" href="#how-it-works">
-                See how it works
-              </a>
+              <Link className="button secondary" to="/app/agent">
+                <AudioLines size={18} /> Try the voice agent
+              </Link>
             </div>
             <div className="hero-fine">
               <Check size={15} /> No signup <span>·</span> No API keys{" "}
@@ -59,7 +59,7 @@ export default function Landing() {
           </div>
           <div className="hero-visual">
             <div className="hero-visual-top">
-              <span>THE RECEPTION DESK, REIMAGINED</span>
+              <span>MEET MIA · YOUR VIRTUAL RECEPTIONIST</span>
               <AudioLines size={20} />
             </div>
             <div className="call-orbit">
@@ -78,11 +78,14 @@ export default function Landing() {
               “Of course. Let’s find a time that works for you.”
             </div>
             <div className="visual-caption">
+              <small>Example conversation · Explore the working demo</small>
               <span>
                 <CalendarDays size={20} />
                 <strong>Conversation → confirmation</strong>
               </span>
-              <small>Illustrative conversation · Try the live workspace</small>
+              <Link className="text-link" to="/app/agent">
+                Start your own conversation <ArrowRight size={15} />
+              </Link>
             </div>
           </div>
         </section>

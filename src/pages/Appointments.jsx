@@ -133,7 +133,7 @@ export default function Appointments() {
                     <td>
                       <button
                         className="text-link"
-                        aria-label={`View ${a.customer}`}
+                        aria-label={`Details for ${a.customer}`}
                         onClick={() => setParams({ booking: a.id })}
                       >
                         Details <ArrowUpRight size={15} />
@@ -151,7 +151,12 @@ export default function Appointments() {
             )}
           </div>
         ) : (
-          <div className="calendar">
+          <div
+            className="calendar"
+            tabIndex={0}
+            role="region"
+            aria-label="Appointment calendar"
+          >
             <div className="calendar-toolbar">
               <h2>
                 {new Intl.DateTimeFormat("en-GB", {
