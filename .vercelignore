@@ -1,0 +1,13 @@
+.git
+.vercel
+.voice-test-profile
+node_modules
+dist
+test-results
+playwright-report
+screenshots
+tests
+.env
+.env.local
+*.zip
+*.log
