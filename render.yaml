@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: voicely
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_VAPI_PUBLIC_KEY
+        sync: false
+      - key: VITE_VAPI_ASSISTANT_ID
+        sync: false
