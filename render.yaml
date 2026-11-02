@@ -17,3 +17,4 @@ services:
         sync: false
       - key: VITE_VAPI_ASSISTANT_ID
         sync: false
+
