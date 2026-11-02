@@ -56,7 +56,7 @@ export function createSpeech({
     const session = ++recognitionSession;
     let received = false;
     recognition = new API();
-    recognition.lang = "en-IN";
+    recognition.lang = (typeof navigator !== "undefined" && navigator.language) || "en-US";
     recognition.interimResults = true;
     recognition.continuous = false;
     const fail = (text) => {
@@ -168,7 +168,7 @@ export function createSpeech({
       return;
     }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN";
+    utterance.lang = (typeof navigator !== "undefined" && navigator.language) || "en-US";
     utterance.rate = 1;
     const voices = window.speechSynthesis.getVoices?.() || [];
     const voice =

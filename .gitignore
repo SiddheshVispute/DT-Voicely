@@ -61,3 +61,5 @@ Thumbs.db:encryptable
 # Hosting & Deployment
 .vercel/
 
+
+.vercel

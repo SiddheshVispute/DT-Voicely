@@ -49,7 +49,12 @@ export function AppProvider({ children }) {
     sendRef = useRef(null),
     listenRef = useRef(null),
     voiceLoop = useRef(false),
-    engineRef = useRef("device"),
+    engineRef = useRef(
+      typeof window !== "undefined" &&
+        (window.SpeechRecognition || window.webkitSpeechRecognition)
+        ? "browser"
+        : "device",
+    ),
     spokenRef = useRef(false),
     resumeTimer = useRef(null);
 
@@ -374,9 +379,13 @@ export function AppProvider({ children }) {
 
     if (!creds.isConfigured) {
       setLiveCallMode("demo");
-      setVapiStatus("Demo Mode");
-      setToast("Vapi credentials not configured. Starting in labeled Demo Mode.");
-      await start({ voice: true });
+      setVapiStatus("Interactive Ready");
+      setToast(
+        creds.isPrivateSecretMisplaced
+          ? "Please enter your Vapi Public Client Key (not secret) in Settings."
+          : "Vapi keys not configured. Launching Voicely Interactive Voice Agent."
+      );
+      await startVoice();
       return;
     }
 
@@ -387,12 +396,21 @@ export function AppProvider({ children }) {
     try {
       await vapiVoice.current.startCall({
         config: data.config,
-        onStatus: (s) => setVapiStatus(s),
+        onStatus: (s) => {
+          setVapiStatus(s);
+          if (s === "Connected" || s === "Speaking" || s === "Listening") {
+            setVapiActive(true);
+          } else if (s === "Error" || s === "Ended") {
+            setVapiActive(false);
+          }
+        },
         onTranscript: (item, fullList) => {
           setVapiTranscript([...fullList]);
         },
         onVolume: (v) => setVapiVolume(v),
         onError: (err) => {
+          setVapiActive(false);
+          setVapiStatus("Error");
           setVapiError(err);
           setError(err);
         },
@@ -463,7 +481,24 @@ export function AppProvider({ children }) {
     }
   }
 
-  function openLiveCall() {
+  async function switchToInteractiveVoice() {
+    if (vapiVoice.current?.isActive()) {
+      vapiVoice.current.endCall();
+    }
+    setVapiActive(false);
+    setVapiError("");
+    setLiveCallMode("demo");
+    setLiveCallOpen(true);
+    setVapiStatus("Interactive Active");
+    setToast("Switched to Voicely Interactive Voice Receptionist.");
+    await startVoice();
+  }
+
+  function openLiveCall(preferredMode) {
+    if (preferredMode === "demo" || preferredMode === "interactive") {
+      switchToInteractiveVoice();
+      return;
+    }
     startVapiCall();
   }
 
@@ -607,6 +642,7 @@ export function AppProvider({ children }) {
         endVapiCall,
         openLiveCall,
         closeLiveCall,
+        switchToInteractiveVoice,
         // Leads & Multi-tenancy
         createLead,
         updateLead,
