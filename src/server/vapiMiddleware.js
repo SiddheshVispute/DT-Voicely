@@ -27,6 +27,9 @@ export function setServerState(state) {
 }
 
 function parseJsonBody(req) {
+  if (req.body && typeof req.body === "object") {
+    return Promise.resolve(req.body);
+  }
   return new Promise((resolve) => {
     let body = "";
     req.on("data", (chunk) => {
@@ -49,6 +52,22 @@ export async function handleApiMiddleware(req, res, next) {
   }
 
   res.setHeader("Content-Type", "application/json");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-vapi-secret");
+
+  if (req.method === "OPTIONS") {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
+
+  // Health check endpoint
+  if ((req.url === "/api/health" || req.url === "/api/health/") && req.method === "GET") {
+    res.statusCode = 200;
+    res.end(JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }));
+    return;
+  }
 
   try {
     // Helper to execute single function
