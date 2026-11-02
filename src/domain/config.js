@@ -1,8 +1,9 @@
 export const defaultConfig = {
   name: "Willow Wellness",
-  category: "Wellness & care",
+  category: "Healthcare & Wellness",
   address: "24 Garden Lane, Bengaluru",
   phone: "+91 80 5550 0142",
+  email: "contact@willowwellness.com",
   timezone: "Asia/Kolkata",
   duration: 30,
   buffer: 10,
@@ -44,6 +45,43 @@ export const defaultConfig = {
       "Hello! Welcome to {business}. I’m {agent}, your virtual receptionist. How can I help you today?",
     tone: "Warm and professional",
     speak: false,
+    faqs: [
+      {
+        id: "faq-location",
+        question: "Where are you located and is parking available?",
+        answer: "We are at 24 Garden Lane, Bengaluru. Free customer parking is available on-site.",
+      },
+      {
+        id: "faq-cancellation",
+        question: "What is your cancellation and rescheduling policy?",
+        answer: "Appointments can be rescheduled or cancelled anytime before the scheduled time with no penalty.",
+      },
+      {
+        id: "faq-first-visit",
+        question: "What should I bring for my first consultation?",
+        answer: "Please bring any prior medical notes or wellness history. Arrive 5 minutes before your slot.",
+      },
+    ],
+    prompt:
+      "You are Mia, an attentive AI receptionist for Willow Wellness. Answer questions using only the official business services, prices, and FAQs. When a customer wants to book an appointment, check availability and confirm their name, phone, and time before booking. If they do not book, politely offer to save their inquiry as a lead so the team can follow up.",
+  },
+  vapi: {
+    publicKey: "",
+    assistantId: "",
+    phoneNumber: "+1 (800) 555-0199",
+    enabled: false,
+  },
+  googleCalendar: {
+    connected: false,
+    email: "",
+    syncEnabled: false,
+    lastSyncedAt: null,
+  },
+  widget: {
+    enabled: true,
+    welcomeMessage:
+      "Hello! Welcome to Willow Wellness. I can help you check services, find open times, or book an appointment.",
+    themeColor: "#6254e8",
   },
 };
 export const greetingFor = (c) =>
@@ -102,5 +140,13 @@ export function validateConfig(c) {
   }
   if (!c.agent?.name?.trim() || !c.agent?.greeting?.trim())
     throw new Error("The receptionist needs a name and greeting.");
+
+  // Guarantee sub-objects exist with defaults
+  if (!Array.isArray(c.agent.faqs)) c.agent.faqs = [];
+  if (!c.vapi) c.vapi = { publicKey: "", assistantId: "", phoneNumber: "", enabled: false };
+  if (!c.googleCalendar) c.googleCalendar = { connected: false, email: "", syncEnabled: false, lastSyncedAt: null };
+  if (!c.widget) c.widget = { enabled: true, welcomeMessage: "How can I help you today?", themeColor: "#6254e8" };
+
   return c;
 }
+

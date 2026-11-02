@@ -9,5 +9,9 @@ screenshots
 tests
 .env
 .env.local
+.env.*.local
+.vscode
+.idea
 *.zip
 *.log
+

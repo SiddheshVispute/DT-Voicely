@@ -4072,3 +4072,419 @@ textarea::placeholder {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   VOICELY ENHANCEMENTS: LEADS, LIVE VOICE, ONBOARDING, WIDGET & MULTI-TENANCY
+   ========================================================================== */
+
+/* Leads Management View */
+.leads-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.leads-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.leads-stat-card {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.leads-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #f0edff;
+  color: var(--primary, #6254e8);
+}
+
+.leads-stat-card h4 {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.leads-stat-card strong {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.leads-filter-bar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.leads-search-input {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  padding: 0 14px;
+  height: 40px;
+}
+
+.leads-search-input input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+}
+
+.leads-filter-tabs {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.leads-filter-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.leads-filter-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.leads-table-container {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.leads-table th {
+  background: #f8fafc;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.leads-table td {
+  padding: 16px 18px;
+  font-size: 14px;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.lead-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.lead-row:hover {
+  background: #f8fafc;
+}
+
+.lead-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lead-status-pill.new {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.lead-status-pill.contacted {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.lead-status-pill.converted {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.lead-status-pill.lost {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Modal Overlay for Lead Details */
+.lead-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.lead-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.lead-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lead-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Vapi Live Call Modal */
+.live-call-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 29, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.live-call-modal {
+  background: #151c31;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+}
+
+.live-call-header {
+  padding: 18px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.live-call-body {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.live-call-orb {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #818cf8 0%, #6254e8 60%, #4338ca 100%);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 35px rgba(98, 84, 232, 0.6);
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.live-call-orb.active {
+  animation: orbPulse 2s infinite ease-in-out;
+}
+
+@keyframes orbPulse {
+  0% {
+    box-shadow: 0 0 25px rgba(98, 84, 232, 0.4);
+    transform: scale(0.98);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(98, 84, 232, 0.85);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(98, 84, 232, 0.4);
+    transform: scale(0.98);
+  }
+}
+
+.live-transcript-box {
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.live-msg {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 85%;
+}
+
+.live-msg.assistant {
+  align-self: flex-start;
+  background: rgba(98, 84, 232, 0.2);
+  color: #e0e7ff;
+}
+
+.live-msg.user {
+  align-self: flex-end;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+/* Topbar Voice CTA */
+.topbar-voice-cta {
+  background: linear-gradient(135deg, #6254e8 0%, #4f46e5 100%);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(98, 84, 232, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.topbar-voice-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(98, 84, 232, 0.45);
+}
+
+/* Onboarding Wizard */
+.onboarding-container {
+  max-width: 840px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.onboarding-steps-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.onboarding-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.onboarding-step-pill.active {
+  color: var(--primary, #6254e8);
+}
+
+.onboarding-step-pill.done {
+  color: #10b981;
+}
+
+.onboarding-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+/* Multi-Tenant Workspace & Role Switcher */
+.tenant-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #1c2438;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+}
+
+.role-badge-pill {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.role-badge-pill.owner {
+  background: rgba(98, 84, 232, 0.25);
+  color: #a5b4fc;
+}
+
+.role-badge-pill.admin {
+  background: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+}
+
+.role-badge-pill.employee {
+  background: rgba(148, 163, 184, 0.25);
+  color: #cbd5e1;
+}
+

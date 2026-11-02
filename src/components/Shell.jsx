@@ -2,6 +2,7 @@ import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   AudioLines,
+  UserCheck,
   CalendarDays,
   Phone,
   Settings,
@@ -10,21 +11,56 @@ import {
   X,
   ChevronDown,
   ShieldCheck,
+  Building2,
+  Plus,
+  Check,
+  User,
+  Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useApp } from "../state/AppContext";
-import { Brand } from "./ui";
+import { Brand, Badge } from "./ui";
+
 const navigation = [
   ["/app", "Overview", LayoutDashboard],
   ["/app/agent", "Voice Agent", AudioLines],
+  ["/app/leads", "Leads", UserCheck],
   ["/app/appointments", "Appointments", CalendarDays],
   ["/app/calls", "Call Logs", Phone],
   ["/app/settings", "Settings", Settings],
 ];
+
 export default function Shell() {
-  const { data, repository, error, setError, toast, active } = useApp(),
-    [open, setOpen] = useState(false),
-    location = useLocation();
+  const {
+    data,
+    repository,
+    error,
+    setError,
+    toast,
+    active,
+    vapiActive,
+    openLiveCall,
+    switchBusiness,
+    setUserRole,
+  } = useApp();
+
+  const [open, setOpen] = useState(false);
+  const [bizDropdown, setBizDropdown] = useState(false);
+  const [roleDropdown, setRoleDropdown] = useState(false);
+  const location = useLocation();
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setBizDropdown(false);
+        setRoleDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   if (!data)
     return (
       <div className="boot">
@@ -37,6 +73,17 @@ export default function Shell() {
         )}
       </div>
     );
+
+  const businesses = data.businesses || [
+    {
+      id: data.config.id || "biz-1",
+      name: data.config.name,
+      category: data.config.category || "Professional Services",
+    },
+  ];
+
+  const currentRole = data.currentUser?.role || "owner";
+
   return (
     <div className="app-shell">
       <button
@@ -60,24 +107,62 @@ export default function Shell() {
             <X />
           </button>
         </div>
-        <Link
-          className="business-switch"
-          to="/app/settings"
-          onClick={() => setOpen(false)}
-        >
-          <span className="business-avatar">
-            {data.config.name.slice(0, 1)}
-          </span>
-          <span>
-            <strong>{data.config.name}</strong>
-            <small>
-              {repository.mode === "demo"
-                ? "Demo workspace"
-                : "Cloud workspace"}
-            </small>
-          </span>
-          <ChevronDown size={14} />
-        </Link>
+
+        {/* Business Switcher Dropdown */}
+        <div className="business-switch-container" ref={dropdownRef}>
+          <button
+            className="business-switch"
+            type="button"
+            onClick={() => setBizDropdown(!bizDropdown)}
+          >
+            <span className="business-avatar">
+              {data.config.name.slice(0, 1)}
+            </span>
+            <span>
+              <strong>{data.config.name}</strong>
+              <small>
+                {repository.mode === "demo" ? "Demo workspace" : "Cloud workspace"} ·{" "}
+                <span className="role-tag">{currentRole}</span>
+              </small>
+            </span>
+            <ChevronDown size={14} />
+          </button>
+
+          {bizDropdown && (
+            <div className="biz-dropdown-menu">
+              <div className="biz-dropdown-header">WORKSPACES</div>
+              {businesses.map((b) => (
+                <button
+                  key={b.id}
+                  className={`biz-dropdown-item ${b.id === data.config.id ? "active" : ""}`}
+                  onClick={() => {
+                    switchBusiness(b.id);
+                    setBizDropdown(false);
+                    setOpen(false);
+                  }}
+                >
+                  <Building2 size={15} />
+                  <span>{b.name}</span>
+                  {b.id === data.config.id && <Check size={14} className="check-icon" />}
+                </button>
+              ))}
+
+              <div className="biz-dropdown-divider" />
+              <Link
+                to="/app/onboarding"
+                className="biz-dropdown-item add-biz"
+                onClick={() => {
+                  setBizDropdown(false);
+                  setOpen(false);
+                }}
+              >
+                <Plus size={15} />
+                <span>+ Register New Business</span>
+              </Link>
+            </div>
+          )}
+        </div>
+
         <div className="nav-label">WORKSPACE</div>
         <nav>
           {navigation.map(([path, label, Icon]) => (
@@ -92,13 +177,31 @@ export default function Shell() {
             >
               <Icon size={19} />
               <span>{label}</span>
-              {label === "Voice Agent" && active && (
-                <i className="status-dot" />
+              {label === "Voice Agent" && (active || vapiActive) && (
+                <i className="status-dot pulse" />
+              )}
+              {label === "Leads" && (data.leads?.filter((l) => l.status === "new").length > 0) && (
+                <span className="nav-badge">
+                  {data.leads.filter((l) => l.status === "new").length}
+                </span>
               )}
             </NavLink>
           ))}
         </nav>
+
         <div className="sidebar-bottom">
+          {/* Quick Voice Launch in Sidebar */}
+          <button
+            className="sidebar-voice-btn"
+            onClick={() => {
+              setOpen(false);
+              openLiveCall();
+            }}
+          >
+            <AudioLines size={18} />
+            <span>Start Voice Call</span>
+          </button>
+
           <div className="demo-card">
             <ShieldCheck size={19} />
             <strong>
@@ -108,33 +211,72 @@ export default function Shell() {
             </strong>
             <p>
               {repository.mode === "demo"
-                ? "Try a conversation. Make a booking. Everything stays in this browser."
+                ? "Try a Vapi conversation or book an appointment. Tenant data is isolated."
                 : "Authenticated database storage with tenant isolation."}
             </p>
             <Link to="/app/agent">
               Meet your receptionist <ArrowUpRight size={15} />
             </Link>
           </div>
-          <Link className="profile" to="/app/settings">
-            <span className="profile-avatar">
-              {repository.mode === "demo" ? "D" : "C"}
-            </span>
-            <span>
-              <strong>
-                {repository.mode === "demo"
-                  ? "Demo account"
-                  : "Business account"}
-              </strong>
-              <small>
-                {repository.mode === "demo"
-                  ? "No signup needed"
-                  : "Cloud storage active"}
-              </small>
-            </span>
-            <Settings size={17} />
-          </Link>
+
+          {/* User Profile & Role Switcher */}
+          <div className="profile-container">
+            <button
+              className="profile"
+              type="button"
+              onClick={() => setRoleDropdown(!roleDropdown)}
+            >
+              <span className="profile-avatar">
+                {currentRole === "owner" ? "O" : currentRole === "admin" ? "A" : "E"}
+              </span>
+              <span>
+                <strong>
+                  {data.currentUser?.name || (repository.mode === "demo" ? "Demo User" : "Business Account")}
+                </strong>
+                <small>Role: {currentRole} (Click to switch)</small>
+              </span>
+              <ChevronDown size={14} />
+            </button>
+
+            {roleDropdown && (
+              <div className="role-dropdown-menu">
+                <div className="biz-dropdown-header">TESTING PERMISSIONS</div>
+                <button
+                  className={`biz-dropdown-item ${currentRole === "owner" ? "active" : ""}`}
+                  onClick={() => {
+                    setUserRole("owner");
+                    setRoleDropdown(false);
+                  }}
+                >
+                  <User size={14} />
+                  <span>Owner (Full Access)</span>
+                </button>
+                <button
+                  className={`biz-dropdown-item ${currentRole === "admin" ? "active" : ""}`}
+                  onClick={() => {
+                    setUserRole("admin");
+                    setRoleDropdown(false);
+                  }}
+                >
+                  <User size={14} />
+                  <span>Admin</span>
+                </button>
+                <button
+                  className={`biz-dropdown-item ${currentRole === "employee" ? "active" : ""}`}
+                  onClick={() => {
+                    setUserRole("employee");
+                    setRoleDropdown(false);
+                  }}
+                >
+                  <User size={14} />
+                  <span>Employee (Restricted)</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
+
       <div className="workspace">
         <header className="topbar">
           <span className="breadcrumb">
@@ -145,6 +287,12 @@ export default function Shell() {
             </strong>
           </span>
           <div className="topbar-right">
+            <button
+              className="button small topbar-voice-cta"
+              onClick={openLiveCall}
+            >
+              <AudioLines size={15} /> Start a conversation
+            </button>
             <span className="connection">
               <i />
               {repository.mode === "demo" ? "Local demo" : "Cloud connected"}
@@ -154,6 +302,7 @@ export default function Shell() {
             </Link>
           </div>
         </header>
+
         {error && (
           <div className="notice error" role="alert">
             <span>{error}</span>
@@ -166,18 +315,21 @@ export default function Shell() {
             </button>
           </div>
         )}
+
         {toast && (
           <div className="toast" role="status">
             {toast}
           </div>
         )}
+
         <main className="workspace-main">
           <Outlet />
         </main>
+
         <footer className="app-footer">
           <span>Every conversation, taken care of.</span>
           <span>
-            Voicely ·{" "}
+            Voicely · {data.config.name} · {data.config.timezone} ·{" "}
             {repository.mode === "demo"
               ? "Demo data · SMS simulated"
               : "Cloud data · SMS simulated"}
@@ -187,3 +339,4 @@ export default function Shell() {
     </div>
   );
 }
+

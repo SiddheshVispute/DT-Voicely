@@ -6,6 +6,8 @@ import Shell from "./components/Shell";
 import Landing from "./pages/Landing";
 import Overview from "./pages/Overview";
 import Agent from "./pages/Agent";
+import Leads from "./pages/Leads";
+import Onboarding from "./pages/Onboarding";
 import Appointments from "./pages/Appointments";
 import CallLogs from "./pages/CallLogs";
 import Settings from "./pages/Settings";
@@ -36,13 +38,17 @@ createRoot(document.getElementById("root")).render(
         <AppProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/app" element={<Shell />}>
               <Route index element={<Overview />} />
               <Route path="agent" element={<Agent />} />
+              <Route path="leads" element={<Leads />} />
               <Route path="appointments" element={<Appointments />} />
               <Route path="calls" element={<CallLogs />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="onboarding" element={<Onboarding />} />
             </Route>
+
             <Route
               path="*"
               element={

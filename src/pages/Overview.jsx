@@ -9,63 +9,100 @@ import {
   AudioLines,
   Check,
   Sparkles,
+  UserCheck,
+  AlertCircle,
+  Building2,
+  Calendar,
 } from "lucide-react";
 import { useApp } from "../state/AppContext";
 import { PageTitle, Badge, SectionHead } from "../components/ui";
-import { formatSlot, formatDate, today, localParts } from "../domain/time";
+import { formatSlot, formatDate, today } from "../domain/time";
+
 export default function Overview() {
-  const { data } = useApp(),
-    c = data.config,
-    upcoming = data.appointments
-      .filter(
-        (a) => a.status === "confirmed" && Date.parse(a.start) > Date.now(),
-      )
-      .sort((a, b) => a.start.localeCompare(b.start)),
-    calls = data.conversations;
+  const { data, openLiveCall } = useApp();
+  const c = data.config;
+  const calls = data.conversations || [];
+  const leads = data.leads || [];
+  const appointments = data.appointments || [];
+
+  const upcoming = appointments
+    .filter((a) => a.status === "confirmed" && Date.parse(a.start) > Date.now())
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  const newLeadsCount = leads.filter((l) => l.status === "new").length;
+  const confirmedCount = appointments.filter((a) => a.status === "confirmed").length;
+
+  // Unresolved enquiries: new leads + calls without an appointment or converted lead
+  const unresolvedInquiries = leads.filter((l) => l.status === "new" || l.status === "contacted").length;
+
   const duration = calls.reduce(
     (n, x) =>
       n +
       (x.endedAt
         ? Math.max(0, Date.parse(x.endedAt) - Date.parse(x.startedAt))
-        : 0),
+        : (x.durationSeconds || 0) * 1000),
     0,
   );
+
   const stats = [
-    [Phone, calls.length, "Conversations", "Saved in your workspace"],
-    [
-      CalendarDays,
-      data.appointments.filter((a) => a.status === "confirmed").length,
-      "Confirmed bookings",
-      "Including labelled sample data",
-    ],
-    [
-      Clock3,
-      `${Math.floor(duration / 60000)}m ${Math.floor(duration / 1000) % 60}s`,
-      "Conversation time",
-      "Completed conversations only",
-    ],
-    [
-      MessageSquare,
-      data.confirmations.length,
-      "Confirmation previews",
-      "Simulated · never sent",
-    ],
+    [Phone, calls.length, "Total calls", "Saved in your workspace"],
+    [UserCheck, newLeadsCount, "New leads", "Requiring follow-up"],
+    [CalendarDays, confirmedCount, "Confirmed bookings", "Including labelled sample data"],
+    [Clock3, upcoming.length, "Upcoming bookings", "Scheduled ahead"],
+    [AlertCircle, unresolvedInquiries, "Unresolved enquiries", "Leads & pending calls"],
   ];
-  const recent = [...calls]
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-    .slice(0, 4);
+
+  // Combined recent customer activity
+  const recentCalls = calls.slice(0, 3).map((c) => ({
+    id: c.id,
+    type: "call",
+    title: c.caller || (c.sample ? "Sample Caller" : `Conversation ${c.id.slice(0, 6)}`),
+    subtitle: c.summary,
+    timestamp: c.startedAt,
+    outcome: c.outcome,
+    sample: c.sample,
+    link: `/app/calls?call=${c.id}`,
+  }));
+
+  const recentBookings = upcoming.slice(0, 2).map((a) => ({
+    id: a.id,
+    type: "appointment",
+    title: a.customer,
+    subtitle: `${a.serviceName} · ${formatDate(a.start, c.timezone, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+    timestamp: a.createdAt,
+    outcome: "confirmed",
+    sample: a.sample,
+    link: `/app/appointments?booking=${a.id}`,
+  }));
+
+  const recentLeads = leads.slice(0, 2).map((l) => ({
+    id: l.id,
+    type: "lead",
+    title: l.name,
+    subtitle: `${l.serviceRequested} · ${l.enquiry.slice(0, 60)}…`,
+    timestamp: l.createdAt,
+    outcome: l.status,
+    sample: l.sample,
+    link: `/app/leads`,
+  }));
+
+  const recentActivity = [...recentCalls, ...recentBookings, ...recentLeads]
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 6);
+
   return (
     <>
       <PageTitle
         eyebrow="YOUR RECEPTION, AT A GLANCE"
         title="A little more room in your day."
-        description={`Here’s what’s happening at ${c.name}.`}
+        description={`Here’s what’s happening at ${c.name} (${c.category || "Professional Business"}).`}
         action={
-          <Link className="button" to="/app/agent">
+          <button className="button" onClick={openLiveCall}>
             <AudioLines size={17} /> Start a conversation
-          </Link>
+          </button>
         }
       />
+
       <div className="welcome-banner">
         <div>
           <span className="pill light-pill">
@@ -77,12 +114,17 @@ export default function Overview() {
             could be a new appointment.
           </h2>
           <p>
-            Meet {c.agent.name}. Ask a question, find a time, and see your
-            calendar come to life.
+            Meet {c.agent.name}. Ask a question, find open times, and see your
+            calendar and leads come to life in real-time.
           </p>
-          <Link to="/app/agent" className="banner-link">
-            Try your voice agent <ArrowUpRight size={17} />
-          </Link>
+          <div className="banner-buttons">
+            <button className="banner-voice-cta" onClick={openLiveCall}>
+              <AudioLines size={18} /> Launch Voice Assistant
+            </button>
+            <Link to="/app/agent" className="banner-link">
+              Configure agent <ArrowUpRight size={17} />
+            </Link>
+          </div>
         </div>
         <div className="banner-wave" aria-hidden="true">
           {[20, 38, 60, 33, 82, 100, 65, 42, 74, 50, 26, 45, 18].map((h, i) => (
@@ -90,10 +132,12 @@ export default function Overview() {
           ))}
         </div>
         <span className="banner-stamp">
-          <Sparkles size={16} /> CONVERSATIONS → ACTIONS
+          <Sparkles size={16} /> CONVERSATIONS → LEADS & BOOKINGS
         </span>
       </div>
-      <div className="stats-grid">
+
+      {/* Overview 5-column metric cards */}
+      <div className="stats-grid overview-stats-grid">
         {stats.map(([Icon, value, label, sub]) => (
           <div className="stat-card" key={label}>
             <div className="stat-top">
@@ -107,10 +151,12 @@ export default function Overview() {
           </div>
         ))}
       </div>
+
       <div className="overview-grid">
+        {/* Coming Up Section */}
         <section className="panel">
           <SectionHead
-            title="Coming up"
+            title="Upcoming appointments"
             subtitle="A little preparation goes a long way."
           >
             <Link to="/app/appointments" className="text-link">
@@ -173,35 +219,41 @@ export default function Overview() {
             <i className="status-dot" /> All times in {c.timezone}
           </div>
         </section>
+
+        {/* AI Receptionist Summary Panel */}
         <section className="panel agent-summary">
-          <SectionHead title="Your receptionist">
+          <SectionHead title="AI Voice Receptionist">
             <Link to="/app/agent" aria-label="Configure voice agent">
               <ArrowUpRight size={18} />
             </Link>
           </SectionHead>
-          <div className="mini-orb">
+          <div className="mini-orb" onClick={openLiveCall} style={{ cursor: "pointer" }}>
             <AudioLines size={38} />
           </div>
           <h3>{c.agent.name}</h3>
           <p>{c.agent.tone}</p>
-          <Badge type="green">
-            <i /> Ready for a conversation
+          <Badge type={c.vapi?.publicKey ? "green" : "neutral"}>
+            <i /> {c.vapi?.publicKey ? "Vapi Voice Connected" : "Local Demo Voice Active"}
           </Badge>
           <div className="agent-detail">
             <span>Voice engine</span>
-            <strong>Browser-native</strong>
-            <span>Business knowledge</span>
+            <strong>{c.vapi?.publicKey ? "Vapi Web SDK" : "Browser-native (Demo)"}</strong>
+            <span>Services known</span>
             <strong>{c.services.length} services</strong>
+            <span>Active leads</span>
+            <strong>{newLeadsCount} new</strong>
           </div>
-          <Link className="button secondary full" to="/app/agent">
-            Open Voice Agent <ArrowRight size={16} />
-          </Link>
+          <button className="button primary full" onClick={openLiveCall}>
+            <AudioLines size={16} /> Test Voice Conversation
+          </button>
         </section>
       </div>
+
+      {/* Recent Customer Activity */}
       <section className="panel recent-panel">
         <SectionHead
-          title="Recent conversations"
-          subtitle="Every hello has a story."
+          title="Recent customer activity"
+          subtitle="Real-time interactions across calls, leads, and bookings."
         >
           <Link className="text-link" to="/app/calls">
             View all logs <ArrowUpRight size={15} />
@@ -211,51 +263,58 @@ export default function Overview() {
           <table>
             <thead>
               <tr>
-                <th>Conversation</th>
-                <th>Started</th>
-                <th>Messages</th>
-                <th>Outcome</th>
+                <th>Customer / Activity</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th>Status</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {recent.map((x, i) => (
-                <tr key={x.id}>
+              {recentActivity.map((x) => (
+                <tr key={`${x.type}-${x.id}`}>
                   <td>
                     <div className="table-person">
                       <span className="table-icon">
-                        <Phone size={15} />
+                        {x.type === "call" ? (
+                          <Phone size={15} />
+                        ) : x.type === "appointment" ? (
+                          <CalendarDays size={15} />
+                        ) : (
+                          <UserCheck size={15} />
+                        )}
                       </span>
                       <span>
-                        <strong>
-                          {x.sample
-                            ? "Sample conversation"
-                            : `Conversation ${x.id.slice(0, 6)}`}
-                        </strong>
-                        <small>{x.summary}</small>
+                        <strong>{x.title}</strong>
+                        {x.sample && <small className="sample-tag">Sample</small>}
                       </span>
                     </div>
                   </td>
-                  <td>{formatSlot(x.startedAt, c.timezone)}</td>
-                  <td>{x.messages.length}</td>
+                  <td>
+                    <span className="activity-type-tag">
+                      {x.type === "call" ? "Call" : x.type === "appointment" ? "Booking" : "Lead"}
+                    </span>
+                  </td>
+                  <td>
+                    <small>{x.subtitle}</small>
+                  </td>
                   <td>
                     <Badge
                       type={
-                        x.outcome === "booked"
+                        x.outcome === "booked" || x.outcome === "confirmed" || x.outcome === "converted"
                           ? "green"
+                          : x.outcome === "new"
+                          ? "blue"
                           : x.outcome === "cancelled"
-                            ? "red"
-                            : "neutral"
+                          ? "red"
+                          : "neutral"
                       }
                     >
                       {x.outcome}
                     </Badge>
                   </td>
                   <td>
-                    <Link
-                      to={`/app/calls?call=${x.id}`}
-                      aria-label={`Open conversation ${x.id.slice(0, 6)}`}
-                    >
+                    <Link to={x.link} aria-label={`Open ${x.title}`}>
                       <ArrowUpRight size={17} />
                     </Link>
                   </td>
@@ -265,9 +324,9 @@ export default function Overview() {
           </table>
         </div>
       </section>
+
       <p className="data-note">
-        Metrics are calculated from stored records. Sample records are marked;
-        no activity is generated in the background.
+        Metrics are calculated from stored records. Sample records are marked; no activity is generated in the background.
       </p>
     </>
   );

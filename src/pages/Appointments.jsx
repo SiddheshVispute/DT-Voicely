@@ -110,6 +110,8 @@ export default function Appointments() {
                   <th>Customer</th>
                   <th>Service</th>
                   <th>Date & time</th>
+                  <th>Source</th>
+                  <th>Assigned</th>
                   <th>Status</th>
                   <th />
                 </tr>
@@ -120,11 +122,23 @@ export default function Appointments() {
                     <td>
                       <strong>{a.customer}</strong>
                       <small className="cell-sub">
-                        {a.reference} {a.sample && "· Sample"}
+                        {a.reference} {a.phone ? `· ${a.phone}` : ""} {a.sample && "· Sample"}
                       </small>
                     </td>
                     <td>{a.serviceName}</td>
                     <td>{formatSlot(a.start, data.config.timezone)}</td>
+                    <td>
+                      {a.source === "ai_voice" || a.conversationId ? (
+                        <Badge type="purple">AI Assistant</Badge>
+                      ) : a.source === "website_widget" ? (
+                        <Badge type="blue">Website Widget</Badge>
+                      ) : (
+                        <Badge type="neutral">Manual Entry</Badge>
+                      )}
+                    </td>
+                    <td>
+                      <small>{a.employeeName || (data.config.name + " Team")}</small>
+                    </td>
                     <td>
                       <Badge type={a.status === "confirmed" ? "green" : "red"}>
                         {a.status}

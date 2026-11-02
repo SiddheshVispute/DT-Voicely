@@ -20,6 +20,8 @@ import {
   Settings2,
   LoaderCircle,
   RefreshCw,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useApp } from "../state/AppContext";
 import { PageTitle, Badge, Field, SectionHead } from "../components/ui";
@@ -330,6 +332,47 @@ export default function Agent() {
           </div>
         </section>
         <aside className="voice-panel">
+          {/* Vapi AI Voice Launch Card */}
+          <section className="panel vapi-voice-card">
+            <div className="vapi-card-top">
+              <span className="vapi-logo-badge">
+                <AudioLines size={18} />
+              </span>
+              <div>
+                <strong>Vapi Voice Assistant</strong>
+                <small>{data.config.vapi?.publicKey ? "Web SDK Ready" : "Demo Mode Active"}</small>
+              </div>
+              <Badge type={data.config.vapi?.publicKey ? "green" : "neutral"}>
+                {data.config.vapi?.publicKey ? "Configured" : "Demo Mode"}
+              </Badge>
+            </div>
+
+            <p className="vapi-card-desc">
+              {data.config.vapi?.publicKey
+                ? `Connects to assistant '${data.config.vapi.assistantId || "default"}' with real-time speech, appointment booking, and lead capture.`
+                : "Vapi credentials are not set. Clicking below launches a full voice simulation using your browser's speech engine."}
+            </p>
+
+            <button
+              className="button primary full vapi-call-btn"
+              onClick={app.openLiveCall}
+            >
+              <AudioLines size={18} /> Launch Voice Conversation
+            </button>
+
+            {!data.config.vapi?.publicKey && (
+              <div className="vapi-demo-tip">
+                <AlertCircle size={14} />
+                <span>
+                  To use real Vapi AI, configure your Public Key in{" "}
+                  <Link to="/app/settings" className="text-link">
+                    Settings →
+                  </Link>
+                </span>
+              </div>
+            )}
+          </section>
+
           <section
             className={`panel voice-stage ${voiceMode ? "voice-active" : ""}`}
           >
@@ -539,8 +582,8 @@ export default function Agent() {
         <summary>
           <span>
             <Settings2 size={20} />
-            <strong>Receptionist settings</strong>
-            <small>Name, greeting, and speaking preferences</small>
+            <strong>Receptionist settings & knowledge base</strong>
+            <small>Name, greeting, AI prompt, and business FAQs</small>
           </span>
           <span>Edit configuration</span>
         </summary>
@@ -570,7 +613,7 @@ export default function Agent() {
             >
               <textarea
                 required
-                rows={4}
+                rows={3}
                 maxLength={500}
                 value={draft.greeting}
                 onChange={(e) =>
@@ -578,7 +621,94 @@ export default function Agent() {
                 }
               />
             </Field>
-            <div className="speech-setting">
+            <Field
+              label="AI Receptionist Instructions & Prompt"
+              hint="Specific instructions guiding the assistant on policies, parking, cancellation rules, etc."
+            >
+              <textarea
+                rows={4}
+                placeholder="e.g. Always offer a 10% discount for first-time visitors. Emphasize that free parking is available in the rear lot."
+                value={draft.prompt || ""}
+                onChange={(e) =>
+                  setDraft({ ...draft, prompt: e.target.value })
+                }
+              />
+            </Field>
+
+            <div className="faqs-config-section full-col" style={{ gridColumn: "1 / -1", marginTop: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>Business FAQs & Knowledge Base</h3>
+                  <small style={{ color: "var(--color-muted)" }}>Questions the AI can answer directly during voice conversations</small>
+                </div>
+                <button
+                  type="button"
+                  className="button secondary"
+                  style={{ padding: "0.35rem 0.75rem", fontSize: "0.82rem" }}
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      faqs: [
+                        ...(draft.faqs || []),
+                        { id: `faq_${Date.now()}`, question: "", answer: "" }
+                      ]
+                    })
+                  }
+                >
+                  <Plus size={14} /> Add FAQ
+                </button>
+              </div>
+
+              {(!draft.faqs || draft.faqs.length === 0) ? (
+                <div style={{ padding: "1.25rem", background: "var(--color-surface-hover, rgba(255,255,255,0.03))", borderRadius: 8, textAlign: "center", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+                  No custom FAQs configured yet. Click "Add FAQ" to train your AI on frequently asked questions.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {draft.faqs.map((faq, idx) => (
+                    <div key={faq.id || idx} style={{ display: "flex", gap: "0.75rem", background: "var(--color-surface, rgba(255,255,255,0.04))", padding: "0.75rem", borderRadius: 8, border: "1px solid var(--color-border)" }}>
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <input
+                          placeholder="Question (e.g. Where are you located?)"
+                          value={faq.question}
+                          onChange={(e) => {
+                            const updated = [...draft.faqs];
+                            updated[idx] = { ...faq, question: e.target.value };
+                            setDraft({ ...draft, faqs: updated });
+                          }}
+                          style={{ fontSize: "0.85rem", padding: "0.4rem 0.6rem" }}
+                        />
+                        <textarea
+                          rows={2}
+                          placeholder="Answer (e.g. We are at 450 Market St, Suite 200. Free parking available.)"
+                          value={faq.answer}
+                          onChange={(e) => {
+                            const updated = [...draft.faqs];
+                            updated[idx] = { ...faq, answer: e.target.value };
+                            setDraft({ ...draft, faqs: updated });
+                          }}
+                          style={{ fontSize: "0.85rem", padding: "0.4rem 0.6rem" }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Delete FAQ"
+                        style={{ alignSelf: "flex-start", color: "var(--color-danger, #ef4444)" }}
+                        onClick={() => {
+                          const updated = draft.faqs.filter((_, i) => i !== idx);
+                          setDraft({ ...draft, faqs: updated });
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="speech-setting" style={{ gridColumn: "1 / -1" }}>
               <Volume2 size={24} />
               <h3>Spoken replies for text chats</h3>
               <p>
