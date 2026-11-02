@@ -582,6 +582,34 @@ export default function Settings() {
             </Badge>
           </SectionHead>
 
+          {/* Vapi Quick Setup Guide -- shown when not yet configured */}
+          {!vapiConfigured && (
+            <div style={{ marginBottom: "1.25rem", padding: "1rem 1.25rem", background: "linear-gradient(135deg, rgba(98,84,232,0.08) 0%, rgba(139,92,246,0.05) 100%)", border: "1px solid rgba(98,84,232,0.25)", borderRadius: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "0.75rem" }}>
+                <Key size={16} color="#818cf8" />
+                <strong style={{ fontSize: "0.9rem" }}>Quick Setup: 3 steps to activate real Vapi voice calls</strong>
+              </div>
+              <ol style={{ margin: 0, paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <li style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>
+                  <strong style={{ color: "var(--color-text)" }}>Get your Public Key</strong> — Open{ }
+                  <a href="https://dashboard.vapi.ai/account" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8", textDecoration: "underline" }}>dashboard.vapi.ai ? Account ? API Keys</a>{ }
+                  and copy your Public key (not the sk_vapi_... secret).
+                </li>
+                <li style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>
+                  <strong style={{ color: "var(--color-text)" }}>Create an Assistant</strong> — Visit{ }
+                  <a href="https://dashboard.vapi.ai/assistants" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8", textDecoration: "underline" }}>Vapi ? Assistants ? New Assistant</a>
+                  . Copy the Assistant ID from its detail page.
+                </li>
+                <li style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>
+                  <strong style={{ color: "var(--color-text)" }}>Paste both keys below</strong> — click Save, then Test Live Voice Conversation to verify.
+                </li>
+              </ol>
+              <p style={{ margin: "0.75rem 0 0", fontSize: "0.8rem", color: "var(--color-muted)", fontStyle: "italic" }}>
+                Without keys, Voicely uses its built-in Interactive Voice Agent (no API needed).
+              </p>
+            </div>
+          )}
+
           <div className="vapi-settings-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <Field
               label="Vapi Public Client Key"
