@@ -32,9 +32,12 @@ import {
 import { createSupabaseRepository } from "../data/supabaseRepository";
 import { createLocalRepository } from "../data/localRepository";
 import { defaultConfig } from "../domain/config";
+import { useTheme } from "../state/ThemeContext";
+import { Sun, Moon } from "lucide-react";
 import WebsiteWidget from "../components/WebsiteWidget";
 
 export default function Settings() {
+  const { theme, setTheme } = useTheme();
   const {
     data,
     repository,
@@ -196,6 +199,70 @@ export default function Settings() {
       />
 
       <form onSubmit={save} className="settings-form">
+        {/* Appearance & Theme */}
+        <section className="panel settings-section" id="appearance-theme">
+          <SectionHead
+            title="Appearance & Theme"
+            subtitle="Customize Voicely interface theme across light mode and deep dark mode."
+          >
+            <Badge type="green">
+              {theme === "dark" ? "Dark Theme Active" : "Light Theme Active"}
+            </Badge>
+          </SectionHead>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
+            <button
+              type="button"
+              className={`theme-card-option ${theme === "light" ? "active" : ""}`}
+              onClick={() => setTheme("light")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "1rem",
+                borderRadius: "10px",
+                border: theme === "light" ? "2px solid var(--primary)" : "1px solid var(--line)",
+                background: "var(--surface)",
+                cursor: "pointer",
+                textAlign: "left"
+              }}
+            >
+              <div style={{ padding: "8px", borderRadius: "8px", background: "rgba(98,84,232,0.1)", color: "var(--primary)" }}>
+                <Sun size={20} />
+              </div>
+              <div>
+                <strong style={{ display: "block", color: "var(--ink)", fontSize: "0.95rem" }}>Light Mode</strong>
+                <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Clean & crisp</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className={`theme-card-option ${theme === "dark" ? "active" : ""}`}
+              onClick={() => setTheme("dark")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "1rem",
+                borderRadius: "10px",
+                border: theme === "dark" ? "2px solid var(--primary)" : "1px solid var(--line)",
+                background: "var(--surface)",
+                cursor: "pointer",
+                textAlign: "left"
+              }}
+            >
+              <div style={{ padding: "8px", borderRadius: "8px", background: "rgba(98,84,232,0.1)", color: "var(--primary)" }}>
+                <Moon size={20} />
+              </div>
+              <div>
+                <strong style={{ display: "block", color: "var(--ink)", fontSize: "0.95rem" }}>Dark Mode</strong>
+                <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Deep navy & slate</span>
+              </div>
+            </button>
+          </div>
+        </section>
+
         {/* Business Profile */}
         <section className="panel settings-section">
           <SectionHead

@@ -21,12 +21,12 @@ export default function Landing() {
         <nav>
           <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
-          <Link to="/app">
-            Open workspace <ArrowUpRight size={15} />
+          <Link to="/auth">
+            Sign In <ArrowUpRight size={15} />
           </Link>
         </nav>
-        <Link className="button small" to="/app">
-          Try Live Demo <ArrowRight size={16} />
+        <Link className="button small" to="/auth">
+          Sign In / Register <ArrowRight size={16} />
         </Link>
       </header>
       <main>
@@ -45,8 +45,8 @@ export default function Landing() {
               moving — all in one workspace.
             </p>
             <div className="hero-actions">
-              <Link className="button" to="/app">
-                Try Live Demo <ArrowRight size={18} />
+              <Link className="button" to="/auth">
+                Get Started / Sign In <ArrowRight size={18} />
               </Link>
               <Link className="button secondary" to="/app/agent">
                 <AudioLines size={18} /> Try the voice agent

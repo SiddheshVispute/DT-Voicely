@@ -20,6 +20,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { useApp } from "../state/AppContext";
 import { Brand, Badge } from "./ui";
+import ThemeToggle from "./ThemeToggle";
 
 const navigation = [
   ["/app", "Overview", LayoutDashboard],
@@ -147,18 +148,7 @@ export default function Shell() {
                 </button>
               ))}
 
-              <div className="biz-dropdown-divider" />
-              <Link
-                to="/app/onboarding"
-                className="biz-dropdown-item add-biz"
-                onClick={() => {
-                  setBizDropdown(false);
-                  setOpen(false);
-                }}
-              >
-                <Plus size={15} />
-                <span>+ Register New Business</span>
-              </Link>
+
             </div>
           )}
         </div>
@@ -297,6 +287,7 @@ export default function Shell() {
               <i />
               {repository.mode === "demo" ? "Local demo" : "Cloud connected"}
             </span>
+            <ThemeToggle showLabel={false} />
             <Link to="/" className="site-link">
               Visit website <ArrowUpRight size={14} />
             </Link>
