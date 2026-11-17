@@ -1,6 +1,8 @@
 export const defaultConfig = {
   name: "Willow Wellness",
   category: "Healthcare & Wellness",
+  description:
+    "Premier wellness and healthcare sanctuary offering individualized consultations, expert therapy, and structured follow-up care.",
   address: "24 Garden Lane, Bengaluru",
   phone: "+91 80 5550 0142",
   email: "contact@willowwellness.com",
@@ -40,7 +42,7 @@ export const defaultConfig = {
     },
   ],
   agent: {
-    name: "Mia",
+    name: "Dhruv",
     greeting:
       "Hello! Welcome to {business}. I’m {agent}, your virtual receptionist. How can I help you today?",
     tone: "Warm and professional",
@@ -63,7 +65,7 @@ export const defaultConfig = {
       },
     ],
     prompt:
-      "You are Mia, an attentive AI receptionist for Willow Wellness. Answer questions using only the official business services, prices, and FAQs. When a customer wants to book an appointment, check availability and confirm their name, phone, and time before booking. If they do not book, politely offer to save their inquiry as a lead so the team can follow up.",
+      "You are Dhruv, an attentive AI receptionist for Willow Wellness. Answer questions using only the official business services, prices, and FAQs. When a customer wants to book an appointment, check availability and confirm their name, phone, and time before booking. If they do not book, politely offer to save their inquiry as a lead so the team can follow up.",
   },
   vapi: {
     publicKey: "",

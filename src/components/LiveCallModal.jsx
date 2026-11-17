@@ -74,7 +74,7 @@ export default function LiveCallModal() {
               {isVapi ? <AudioLines size={20} /> : <Sparkles size={20} />}
             </span>
             <div>
-              <h3>Voice Call · {data.config.agent?.name || "Maya"}</h3>
+              <h3>Voice Call · {data.config.agent?.name || "Dhruv"}</h3>
               <small>
                 {data.config.name} Receptionist ·{" "}
                 <span className="mode-tag">{isVapi ? "Vapi Voice AI" : "Interactive Receptionist"}</span>
@@ -137,7 +137,7 @@ export default function LiveCallModal() {
           <div className="live-call-notice">
             <Info size={16} />
             <span>
-              <strong>Interactive Voice Agent Active:</strong> Maya is listening and responding live.
+              <strong>Interactive Voice Agent Active:</strong> {data.config.agent?.name || "Dhruv"} is listening and responding live.
               Appointments and leads are saved directly to your workspace.{" "}
               <Link to="/app/settings" onClick={closeLiveCall} className="text-link">
                 Configure Vapi in Settings →
@@ -160,7 +160,7 @@ export default function LiveCallModal() {
           <div className="live-call-status-text">
             {currentStatus === "Speaking" ? (
               <span className="speaking-label">
-                <Volume2 size={15} /> {data.config.agent?.name || "Maya"} is speaking…
+                <Volume2 size={15} /> {data.config.agent?.name || "Dhruv"} is speaking…
               </span>
             ) : currentStatus === "Listening" ? (
               <span className="listening-label">
@@ -187,7 +187,7 @@ export default function LiveCallModal() {
               className={`live-message ${m.role === "assistant" ? "assistant" : "customer"}`}
             >
               <span className="message-speaker">
-                {m.role === "assistant" ? (data.config.agent?.name || "Maya") : "You"}
+                {m.role === "assistant" ? (data.config.agent?.name || "Dhruv") : "You"}
               </span>
               <p>{m.text}</p>
             </div>

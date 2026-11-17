@@ -32,6 +32,7 @@ import {
 import { createSupabaseRepository } from "../data/supabaseRepository";
 import { createLocalRepository } from "../data/localRepository";
 import { defaultConfig } from "../domain/config";
+import { buildAssistantPrompt } from "../services/vapiVoice";
 import { useTheme } from "../state/ThemeContext";
 import { Sun, Moon } from "lucide-react";
 import WebsiteWidget from "../components/WebsiteWidget";
@@ -57,6 +58,7 @@ export default function Settings() {
   const [password, setPassword] = useState("");
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [newMember, setNewMember] = useState({
     name: "",
     email: "",
@@ -310,6 +312,18 @@ export default function Settings() {
                 maxLength={200}
                 placeholder="e.g. 450 Market St, Suite 200, San Francisco"
                 onChange={(e) => field("address", e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Business Overview & Description"
+              hint="Detailed background and specialties that the AI voice receptionist (Dhruv & Vapi) uses to answer customer questions."
+            >
+              <textarea
+                rows={3}
+                maxLength={600}
+                placeholder="Explain what your business does, your key specialties, and any special offerings..."
+                value={draft.description || ""}
+                onChange={(e) => field("description", e.target.value)}
               />
             </Field>
             <Field
@@ -591,17 +605,17 @@ export default function Settings() {
               </div>
               <ol style={{ margin: 0, paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <li style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>
-                  <strong style={{ color: "var(--color-text)" }}>Get your Public Key</strong> — Open{ }
+                  <strong style={{ color: "var(--color-text)" }}>Get your Public Key</strong> â€¢ Open{ }
                   <a href="https://dashboard.vapi.ai/account" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8", textDecoration: "underline" }}>dashboard.vapi.ai ? Account ? API Keys</a>{ }
                   and copy your Public key (not the sk_vapi_... secret).
                 </li>
                 <li style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>
-                  <strong style={{ color: "var(--color-text)" }}>Create an Assistant</strong> — Visit{ }
+                  <strong style={{ color: "var(--color-text)" }}>Create an Assistant</strong> â€¢ Visit{ }
                   <a href="https://dashboard.vapi.ai/assistants" target="_blank" rel="noopener noreferrer" style={{ color: "#818cf8", textDecoration: "underline" }}>Vapi ? Assistants ? New Assistant</a>
                   . Copy the Assistant ID from its detail page.
                 </li>
                 <li style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>
-                  <strong style={{ color: "var(--color-text)" }}>Paste both keys below</strong> — click Save, then Test Live Voice Conversation to verify.
+                  <strong style={{ color: "var(--color-text)" }}>Paste both keys below</strong> â€¢ click Save, then Test Live Voice Conversation to verify.
                 </li>
               </ol>
               <p style={{ margin: "0.75rem 0 0", fontSize: "0.8rem", color: "var(--color-muted)", fontStyle: "italic" }}>
@@ -692,6 +706,56 @@ export default function Settings() {
               >
                 {copiedWebhook ? <Check size={14} /> : <Copy size={14} />}
                 {copiedWebhook ? "Copied" : "Copy URL"}
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "1rem",
+              background: "rgba(16, 185, 129, 0.07)",
+              border: "1px solid rgba(16, 185, 129, 0.25)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+              <div style={{ flex: 1 }}>
+                <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Sparkles size={16} color="#10b981" /> Assistant System Prompt (with 5-Step Business Context)
+                </strong>
+                <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--color-muted)" }}>
+                  Voicely automatically injects this context during live web calls. You can also paste it into your Vapi Dashboard (<em>Assistants &gt; System Prompt / Instructions</em>) so your Vapi assistant has it permanently for direct phone calls.
+                </p>
+                <details style={{ marginTop: "8px" }}>
+                  <summary style={{ cursor: "pointer", fontSize: "0.82rem", color: "var(--primary)" }}>
+                    View generated system prompt preview
+                  </summary>
+                  <pre style={{
+                    marginTop: "6px",
+                    padding: "8px 12px",
+                    background: "rgba(0,0,0,0.3)",
+                    borderRadius: "6px",
+                    fontSize: "0.78rem",
+                    whiteSpace: "pre-wrap",
+                    maxHeight: "180px",
+                    overflowY: "auto"
+                  }}>
+                    {buildAssistantPrompt(draft)}
+                  </pre>
+                </details>
+              </div>
+              <button
+                type="button"
+                className="button secondary small"
+                onClick={() => {
+                  navigator.clipboard.writeText(buildAssistantPrompt(draft));
+                  setCopiedPrompt(true);
+                  setTimeout(() => setCopiedPrompt(false), 2000);
+                }}
+              >
+                {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
+                {copiedPrompt ? "Copied" : "Copy Prompt for Vapi"}
               </button>
             </div>
           </div>

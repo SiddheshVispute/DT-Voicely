@@ -1,6 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
-import { today, addDays, weekday, formatSlot, localParts } from "./time";
-import { validateBooking, alternatives } from "./booking";
+import { today, addDays, weekday, formatSlot, localParts } from "./time.js";
+import { validateBooking, alternatives } from "./booking.js";
 export const newDialogue = () => ({
   phase: "idle",
   draft: {},
@@ -48,17 +48,30 @@ export function parseDetails(text, c, now = new Date()) {
       (s.id === "followup" && /follow[ -]?up/.test(lower)),
   );
   if (service) out.serviceId = service.id;
-  const name = text.match(
-    /(?:my name is|name['’]?s|i am|i['’]m|for (?:a customer named|customer|me,?))\s+([\p{L}][\p{L}\p{M} .’'-]*?)(?=\s+(?:and|tomorrow|today|on|at|for|i want|i would)|[,.!?\n]|$)/iu,
-  );
-  if (name) out.customer = name[1].trim().replace(/\.$/, "");
+  const allNames = [
+    ...text.matchAll(
+      /(?:my name is|name['’]?s|i am|i['’]m|for (?:a customer named|customer|me,?))\s+([\p{L}][\p{L}\p{M} .’'-]*?)(?=\s+(?:and|tomorrow|today|on|at|for|i want|i would)|[,.!?\n]|$)/giu,
+    ),
+  ];
+  for (const match of allNames) {
+    const candidate = match[1]?.trim().replace(/\.$/, "");
+    if (
+      candidate &&
+      (!c.agent?.name || candidate.toLowerCase() !== c.agent.name.toLowerCase()) &&
+      !/^(?:looking|interested|trying|want|booking|here|calling)\b/i.test(candidate)
+    ) {
+      out.customer = candidate;
+      break;
+    }
+  }
   if (!out.customer) {
     const forName = text.match(
       /\bfor\s+([A-Z][\p{L}\p{M}’'-]+(?:\s+[A-Z][\p{L}\p{M}’'-]+){0,3})(?=\s+(?:on|at|tomorrow|today)|[,!.]|$)/u,
     );
     if (
       forName &&
-      !c.services.some((s) => s.name.toLowerCase() === forName[1].toLowerCase())
+      !c.services.some((s) => s.name.toLowerCase() === forName[1].toLowerCase()) &&
+      (!c.agent?.name || forName[1].trim().toLowerCase() !== c.agent.name.toLowerCase())
     )
       out.customer = forName[1].trim();
   }
@@ -194,6 +207,27 @@ export async function replyTo(
   ) {
     d.phase = "ended";
     return result("Thank you for contacting us. Take care!");
+  }
+  if (
+    /\b(?:about (?:the |your )?(?:business|company|clinic|wellness|salon|practice|place|facility|shop)|tell me about (?:the |your )?(?:business|company|clinic|wellness|practice)|who are you|business overview|specialties|business description)\b/.test(
+      lower,
+    ) &&
+    !/\b(?:book|reserve|schedule)\b/.test(lower)
+  ) {
+    const desc =
+      c.description ||
+      c.agent?.prompt ||
+      `${c.name} is a premier ${c.category || "service provider"} committed to excellence.`;
+    return result(
+      `${desc}\n\nWe offer: ${c.services.map((s) => s.name).join(", ")}. Would you like to know more or book an appointment?`,
+    );
+  }
+  const matchedFaq = (c.agent?.faqs || []).find((f) => {
+    const qClean = f.question.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+    return lower.includes(qClean) || (f.question.length > 8 && lower.includes(f.question.toLowerCase()));
+  });
+  if (matchedFaq && !/\b(?:book|reserve|schedule)\b/.test(lower)) {
+    return result(matchedFaq.answer);
   }
   if (
     /\b(?:services|offer|treatments|price|pricing|cost|how much|what do you do)\b/.test(

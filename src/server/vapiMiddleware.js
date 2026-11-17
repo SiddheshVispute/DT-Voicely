@@ -7,6 +7,7 @@ import {
   saveCallSummaryAction,
 } from "../domain/actions.js";
 import { defaultConfig, validateConfig } from "../domain/config.js";
+import { buildAssistantPrompt } from "../services/vapiVoice.js";
 
 // In-memory server store for API/webhook handling in development
 let serverState = {
@@ -69,15 +70,56 @@ export async function handleApiMiddleware(req, res, next) {
     return;
   }
 
+  // API Info endpoint
+  if ((req.url === "/api/info" || req.url === "/api/info/") && req.method === "GET") {
+    res.statusCode = 200;
+    res.end(
+      JSON.stringify({
+        service: "voicely-backend",
+        status: "online",
+        supabaseConfigured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
+        vapiConfigured: Boolean(process.env.VITE_VAPI_PUBLIC_KEY && process.env.VITE_VAPI_ASSISTANT_ID),
+        timestamp: new Date().toISOString(),
+      }),
+    );
+    return;
+  }
+
   try {
-    // Helper to execute single function
+    // Helper to execute single function with aliases
     const executeFunction = (fnName, args) => {
-      if (fnName === "check_availability") return checkAvailability(serverState, args);
-      if (fnName === "create_appointment") return createAppointmentAction(serverState, { ...args, source: "vapi_voice" });
-      if (fnName === "create_lead") return createLeadAction(serverState, { ...args, source: "vapi_voice" });
-      if (fnName === "reschedule_appointment") return rescheduleAppointmentAction(serverState, args);
-      if (fnName === "cancel_appointment") return cancelAppointmentAction(serverState, args);
-      if (fnName === "save_call_summary") return saveCallSummaryAction(serverState, args);
+      const fn = (fnName || "").toLowerCase();
+      if (
+        fn === "check_availability" ||
+        fn === "check_schedule" ||
+        fn === "get_availability"
+      ) {
+        return checkAvailability(serverState, args);
+      }
+      if (
+        fn === "create_appointment" ||
+        fn === "book_appointment" ||
+        fn === "schedule_appointment" ||
+        fn === "make_appointment"
+      ) {
+        return createAppointmentAction(serverState, { ...args, source: "vapi_voice" });
+      }
+      if (
+        fn === "create_lead" ||
+        fn === "capture_lead" ||
+        fn === "save_lead"
+      ) {
+        return createLeadAction(serverState, { ...args, source: "vapi_voice" });
+      }
+      if (fn === "reschedule_appointment" || fn === "reschedule") {
+        return rescheduleAppointmentAction(serverState, args);
+      }
+      if (fn === "cancel_appointment" || fn === "cancel") {
+        return cancelAppointmentAction(serverState, args);
+      }
+      if (fn === "save_call_summary") {
+        return saveCallSummaryAction(serverState, args);
+      }
       throw new Error(`Unrecognized function: ${fnName}`);
     };
 
@@ -172,13 +214,33 @@ export async function handleApiMiddleware(req, res, next) {
 
       // Assistant request for incoming phone calls
       if (message.type === "assistant-request") {
+        const fullPrompt = buildAssistantPrompt(serverState.config);
+        const greeting = serverState.config.agent.greeting
+          .replaceAll("{business}", serverState.config.name)
+          .replaceAll("{agent}", serverState.config.agent.name);
+
         res.statusCode = 200;
         res.end(
           JSON.stringify({
             assistant: {
-              firstMessage: serverState.config.agent.greeting
-                .replaceAll("{business}", serverState.config.name)
-                .replaceAll("{agent}", serverState.config.agent.name),
+              firstMessage: greeting,
+              model: {
+                provider: "openai",
+                model: "gpt-4o",
+                messages: [
+                  {
+                    role: "system",
+                    content: fullPrompt,
+                  },
+                ],
+              },
+              variableValues: {
+                businessName: serverState.config.name,
+                businessDescription: serverState.config.description || "",
+                businessCategory: serverState.config.category,
+                businessAddress: serverState.config.address,
+                businessPhone: serverState.config.phone,
+              },
             },
           }),
         );
@@ -196,6 +258,7 @@ export async function handleApiMiddleware(req, res, next) {
       const safeConfig = {
         name: serverState.config.name,
         category: serverState.config.category,
+        description: serverState.config.description || "",
         address: serverState.config.address,
         phone: serverState.config.phone,
         timezone: serverState.config.timezone,

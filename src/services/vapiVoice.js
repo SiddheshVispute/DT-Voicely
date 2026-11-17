@@ -1,5 +1,5 @@
 import VapiPackage from "@vapi-ai/web";
-import { formatSlot } from "../domain/time";
+import { formatSlot } from "../domain/time.js";
 
 const Vapi = VapiPackage.default || VapiPackage;
 
@@ -30,13 +30,13 @@ export function getVapiCredentials(config) {
     publicKey &&
     !publicKey.startsWith("e.g.") &&
     !publicKey.includes("sk_vapi") &&
-    publicKey.length > 8
+    publicKey.length > 8,
   );
 
   const isAssistantValid = Boolean(
     assistantId &&
     !assistantId.startsWith("e.g.") &&
-    assistantId.length > 4
+    assistantId.length > 4,
   );
 
   return {
@@ -49,44 +49,55 @@ export function getVapiCredentials(config) {
 
 export function buildAssistantPrompt(config) {
   const servicesList = (config.services || [])
-    .map((s) => `• ${s.name}: ${s.duration} minutes, ₹${s.price} (${s.description || "Service"})`)
+    .map(
+      (s) =>
+        `• ${s.name}: ${s.duration} minutes, ₹${s.price}${s.description ? ` - ${s.description}` : ""}`,
+    )
     .join("\n");
 
   const faqsList = (config.agent?.faqs || [])
     .map((f) => `Q: ${f.question}\nA: ${f.answer}`)
     .join("\n\n");
 
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const hoursList = Object.entries(config.hours || {})
-    .map(([dayIndex, h]) => {
-      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      return `${days[dayIndex]}: ${h.open ? `${h.start} to ${h.end}` : "Closed"}`;
-    })
+    .map(([dayIndex, h]) => `${days[dayIndex]}: ${h.open ? `${h.start} to ${h.end}` : "Closed"}`)
     .join(", ");
 
-  return `You are ${config.agent?.name || "Maya"}, the voice receptionist for ${config.name} (${config.category || "Professional Business"}).
-Location: ${config.address || "Main Office"}.
-Contact phone: ${config.phone}. Timezone: ${config.timezone}.
-Operating Hours: ${hoursList}.
+  const businessDescription =
+    config.description ||
+    config.agent?.prompt ||
+    `Official ${config.category || "Professional Business"} providing quality services.`;
 
-OFFICIAL SERVICES & PRICING:
+  return `You are ${config.agent?.name || "Dhruv"}, the voice AI receptionist for ${config.name}.
+
+BUSINESS INFORMATION & CONTEXT:
+• Establishment Name: ${config.name}
+• Category / Industry: ${config.category || "Professional Services"}
+• Business Description & Specialties: ${businessDescription}
+• Address / Location: ${config.address || "Main Facility"}
+• Contact Phone: ${config.phone || "Not specified"}
+• Contact Email: ${config.email || "Not specified"}
+• Timezone: ${config.timezone || "Asia/Kolkata"}
+• Operating Hours: ${hoursList}
+
+SERVICES OFFERED & PRICING:
 ${servicesList}
 
 FREQUENTLY ASKED QUESTIONS:
-${faqsList || "No custom FAQs provided."}
+${faqsList || "No specific FAQs provided."}
 
-YOUR RESPONSIBILITIES:
-1. Greet callers warmly in a ${(config.agent?.tone || "Warm and professional").toLowerCase()} tone.
-2. Answer inquiries accurately using only the official business services, prices, and FAQs above. Never invent services, prices, or operating hours.
+YOUR RESPONSIBILITIES AS RECEPTIONIST:
+1. Greet callers warmly as ${config.agent?.name || "Dhruv"}, virtual receptionist for ${config.name}.
+2. Accurately explain the business description, services offered, pricing, opening hours, and location based on the above information. Never invent fake services or hours.
 3. If the customer wants to book an appointment:
-   - Ask for their requested service and preferred date and time.
-   - Use the 'check_availability' tool to confirm whether that slot is open. If unavailable, offer alternative slots.
-   - Once the customer agrees on an available slot, collect their full name and contact phone number.
-   - Re-confirm the appointment details with the customer.
-   - Call the 'create_appointment' tool to record the confirmed booking.
-4. If the customer is interested or has an enquiry but does NOT book immediately:
-   - Ask for their name and phone or email so the business team can follow up.
-   - Call the 'create_lead' tool to save their details and inquiry.
-5. Be concise and conversational, suitable for a real-time voice call. Avoid long monologues.`;
+   - Ask which service they want.
+   - Ask for their preferred date and time.
+   - Confirm their full name and phone number.
+   - Call the 'create_appointment' tool to record and schedule the appointment in the booking calendar.
+   - Give the caller a clear confirmation with their service name, date, and time.
+4. If the customer does not book immediately, collect their name and contact info and call 'create_lead' to save their inquiry.
+5. Keep answers natural, friendly, concise, and suitable for phone conversations.`;
 }
 
 export function createVapiVoice() {
@@ -107,13 +118,13 @@ export function createVapiVoice() {
 
       if (creds.isPrivateSecretMisplaced) {
         throw new Error(
-          "You entered a private Vapi Secret Key (sk_vapi_...) in the Public Client Key field. Web browsers require your Vapi Public Key found in Vapi Dashboard -> API Keys."
+          "You entered a private Vapi Secret Key (sk_vapi_...) in the Public Client Key field. Web browsers require your Vapi Public Key found in Vapi Dashboard -> API Keys.",
         );
       }
 
       if (!creds.isConfigured) {
         throw new Error(
-          "Vapi is not configured. Please provide your Vapi Public Client Key and Assistant ID in Settings, or use Voicely Built-in Voice Mode."
+          "Vapi is not configured. Please provide your Vapi Public Client Key and Assistant ID in Settings, or use Voicely Built-in Voice Mode.",
         );
       }
 
@@ -125,9 +136,73 @@ export function createVapiVoice() {
         // Track live transcript messages
         const liveMessages = [];
 
+        const systemPrompt = buildAssistantPrompt(config);
+
+        // Assistant dynamic overrides tailored to the 5-step business profile
+        const greeting = config.agent?.greeting
+          ? config.agent.greeting
+              .replaceAll("{business}", config.name || "our business")
+              .replaceAll("{agent}", config.agent?.name || "Dhruv")
+          : `Hello! Welcome to ${config.name || "our business"}. I'm ${config.agent?.name || "Dhruv"}, your AI receptionist. How can I help you today?`;
+
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const hoursList = Object.entries(config.hours || {})
+          .map(([dayIndex, h]) => `${days[dayIndex]}: ${h.open ? `${h.start} to ${h.end}` : "Closed"}`)
+          .join(", ");
+
+        const businessOverview =
+          config.description ||
+          config.agent?.prompt ||
+          `Official ${config.category || "Professional Business"} providing quality services.`;
+
+        const assistantOverrides = {
+          firstMessage: greeting,
+          variableValues: {
+            businessName: config.name || "",
+            businessCategory: config.category || "",
+            businessDescription: businessOverview,
+            business_description: businessOverview,
+            businessOverview: businessOverview,
+            business_overview: businessOverview,
+            businessAddress: config.address || "",
+            address: config.address || "",
+            businessPhone: config.phone || "",
+            phone: config.phone || "",
+            businessHours: hoursList,
+            hours: hoursList,
+            services: (config.services || [])
+              .map((s) => `${s.name} (${s.duration}m, ₹${s.price}${s.description ? `: ${s.description}` : ""})`)
+              .join("; "),
+            agentName: config.agent?.name || "Dhruv",
+            context: systemPrompt,
+            systemPrompt: systemPrompt,
+            business_context: systemPrompt,
+          },
+        };
+
         vapi.on("call-start", () => {
           active = true;
           onStatus("Connected");
+          // Send the full business context into the Vapi LLM context on call start
+          const injectPrompt = () => {
+            if (!active || !vapi) return;
+            try {
+              vapi.send({
+                type: "add-message",
+                message: {
+                  role: "system",
+                  content: systemPrompt,
+                },
+                triggerResponseEnabled: false,
+              });
+            } catch (sysErr) {
+              console.warn("Notice: Could not inject system prompt on call-start:", sysErr);
+            }
+          };
+
+          injectPrompt();
+          // Ensure receipt after WebRTC data channel handshake
+          setTimeout(injectPrompt, 350);
         });
 
         vapi.on("call-end", () => {
@@ -144,38 +219,72 @@ export function createVapiVoice() {
           onStatus("Listening");
         });
 
+        // Track volume from both the remote assistant and local microphone
         vapi.on("volume-level", (volume) => {
           onVolume(Math.min(1, Math.max(0, volume || 0)));
+        });
+
+        vapi.on("local-volume-level", (volume) => {
+          onVolume(Math.min(1, Math.max(0, volume || 0)));
+        });
+
+        // Ensure audio element auto-plays on arrival
+        vapi.on("audio", (player) => {
+          if (player && typeof player.play === "function") {
+            player.play().catch((playErr) => console.warn("Vapi audio play note:", playErr));
+          }
         });
 
         vapi.on("message", async (msg) => {
           if (!msg) return;
 
-          // Process speech transcripts
+          // 1. Process speech transcripts
           if (msg.type === "transcript") {
-            const role = msg.role === "assistant" ? "assistant" : "customer";
+            const role = msg.role === "assistant" || msg.role === "bot" ? "assistant" : "customer";
             const text = msg.transcript?.trim();
-            if (text && msg.transcriptType === "final") {
-              const item = {
-                id: crypto.randomUUID(),
-                role,
-                text,
-                at: new Date().toISOString(),
-              };
-              liveMessages.push(item);
-              onTranscript(item, liveMessages);
+            if (text && (msg.transcriptType === "final" || msg.transcriptType === "partial")) {
+              if (msg.transcriptType === "final") {
+                const item = {
+                  id: crypto.randomUUID(),
+                  role,
+                  text,
+                  at: new Date().toISOString(),
+                };
+                liveMessages.push(item);
+                onTranscript(item, liveMessages);
+              }
             }
           }
 
-          // Handle function/tool calls directly if emitted via Web SDK
-          if (msg.type === "tool-calls" && Array.isArray(msg.toolCallList)) {
-            for (const toolCall of msg.toolCallList) {
+          // 2. Process conversation updates
+          if (msg.type === "conversation-update" && Array.isArray(msg.messages)) {
+            const formatted = msg.messages
+              .filter((m) => m.role === "assistant" || m.role === "user")
+              .map((m) => ({
+                id: crypto.randomUUID(),
+                role: m.role === "assistant" ? "assistant" : "customer",
+                text: m.content || m.message || "",
+                at: new Date().toISOString(),
+              }))
+              .filter((m) => Boolean(m.text));
+
+            if (formatted.length > liveMessages.length) {
+              liveMessages.length = 0;
+              liveMessages.push(...formatted);
+              onTranscript(liveMessages[liveMessages.length - 1], liveMessages);
+            }
+          }
+
+          // 3. Handle function/tool calls emitted via Web SDK
+          const toolCallList = msg.toolCallList || msg.toolCalls;
+          if ((msg.type === "tool-calls" || msg.type === "tool-call") && Array.isArray(toolCallList)) {
+            for (const toolCall of toolCallList) {
               try {
-                const name = toolCall.function?.name;
+                const name = toolCall.function?.name || toolCall.name;
                 const args =
                   typeof toolCall.function?.arguments === "string"
                     ? JSON.parse(toolCall.function.arguments)
-                    : toolCall.function?.arguments || {};
+                    : toolCall.function?.arguments || toolCall.parameters || {};
 
                 const result = await onToolCall(name, args);
 
@@ -204,26 +313,11 @@ export function createVapiVoice() {
           onStatus("Error");
         });
 
-        // Assistant dynamic overrides
-        const assistantOverrides = {};
-
-        if (config.agent?.greeting) {
-          assistantOverrides.firstMessage = config.agent.greeting
-            .replaceAll("{business}", config.name || "our business")
-            .replaceAll("{agent}", config.agent?.name || "Maya");
-        }
-
-        assistantOverrides.variableValues = {
-          business: config.name || "our business",
-          agent: config.agent?.name || "Maya",
-          services: config.services?.map((s) => `${s.name} (${s.duration}m, ₹${s.price})`).join(", ") || "",
-        };
-
-        // Try start with overrides; if assistant does not accept overrides, fallback to clean start
+        // Start the assistant with business profile overrides; if locked, fallback to clean start
         try {
           await vapi.start(creds.assistantId, assistantOverrides);
-        } catch (startErr) {
-          console.warn("Attempting direct Vapi start without overrides:", startErr);
+        } catch (overrideErr) {
+          console.warn("Attempting direct Vapi start without overrides:", overrideErr);
           await vapi.start(creds.assistantId);
         }
 

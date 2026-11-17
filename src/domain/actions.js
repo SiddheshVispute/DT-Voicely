@@ -1,11 +1,80 @@
-import { validateBooking, alternatives, bookInState, cancelInState } from "./booking";
-import { formatSlot, localParts } from "./time";
+import { validateBooking, alternatives, bookInState, cancelInState } from "./booking.js";
+import { formatSlot, localParts, today, addDays, weekday } from "./time.js";
+
+/**
+ * Normalizes appointment booking and availability query inputs.
+ * Resolves services by ID or name, converts relative dates (tomorrow, etc.),
+ * and converts 12-hour AM/PM times to 24-hour HH:MM format.
+ */
+export function normalizeBookingInput(state, input = {}, now = new Date()) {
+  const normalized = { ...input };
+
+  // 1. Service resolution (by id, by name, or fallback to first available service)
+  const service =
+    state.config?.services?.find(
+      (s) =>
+        s.id === normalized.serviceId ||
+        s.name.toLowerCase() === normalized.serviceId?.trim().toLowerCase() ||
+        (normalized.service && s.name.toLowerCase() === normalized.service?.trim().toLowerCase()) ||
+        (normalized.serviceName && s.name.toLowerCase() === normalized.serviceName?.trim().toLowerCase()),
+    ) || state.config?.services?.[0];
+
+  if (service) {
+    normalized.serviceId = service.id;
+  }
+
+  // 2. Date normalization (today, tomorrow, weekday names, or YYYY-MM-DD)
+  const base = today(state.config?.timezone || "UTC", now);
+  if (typeof normalized.date === "string") {
+    const dLower = normalized.date.trim().toLowerCase();
+    if (dLower === "today") normalized.date = base;
+    else if (dLower === "tomorrow") normalized.date = addDays(base, 1);
+    else if (dLower === "day after tomorrow") normalized.date = addDays(base, 2);
+    else {
+      const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const dayIdx = days.findIndex((d) => dLower.includes(d));
+      if (dayIdx >= 0) {
+        let n = (dayIdx - weekday(base) + 7) % 7;
+        if (n === 0) n = 7;
+        normalized.date = addDays(base, n);
+      }
+    }
+  }
+
+  // 3. Time normalization (12-hour AM/PM to 24-hour HH:MM)
+  if (typeof normalized.time === "string") {
+    const t = normalized.time.trim();
+    const ampm = t.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+    if (ampm) {
+      let hours = parseInt(ampm[1], 10);
+      const mins = ampm[2] || "00";
+      const isPM = ampm[3].toLowerCase() === "pm";
+      if (isPM && hours < 12) hours += 12;
+      if (!isPM && hours === 12) hours = 0;
+      normalized.time = `${String(hours).padStart(2, "0")}:${mins}`;
+    } else {
+      const simple = t.match(/^(\d{1,2}):(\d{2})$/);
+      if (simple) {
+        normalized.time = `${String(parseInt(simple[1], 10)).padStart(2, "0")}:${simple[2]}`;
+      }
+    }
+  }
+
+  // 4. Customer name fallback
+  if (!normalized.customer && normalized.name) {
+    normalized.customer = normalized.name;
+  }
+
+  return normalized;
+}
 
 /**
  * Checks appointment availability for a specific service, date, and time.
  * If unavailable, returns nearest valid slot alternatives.
  */
-export function checkAvailability(state, { serviceId, date, time, customer }, now = new Date()) {
+export function checkAvailability(state, rawInput, now = new Date()) {
+  const input = normalizeBookingInput(state, rawInput, now);
+  const { serviceId, date, time, customer } = input;
   const service = state.config.services.find((s) => s.id === serviceId);
   if (!service) {
     return {
@@ -66,7 +135,8 @@ export function checkAvailability(state, { serviceId, date, time, customer }, no
 /**
  * Creates an appointment after validation. Idempotent via idempotencyKey.
  */
-export function createAppointmentAction(state, input, now = new Date()) {
+export function createAppointmentAction(state, rawInput, now = new Date()) {
+  const input = normalizeBookingInput(state, rawInput, now);
   const key = input.idempotencyKey || `appt-${crypto.randomUUID().slice(0, 12)}`;
   const appointment = bookInState(
     state,

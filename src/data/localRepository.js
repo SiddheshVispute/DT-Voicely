@@ -1,6 +1,6 @@
-import { defaultConfig, validateConfig, greetingFor } from "../domain/config";
-import { bookInState, cancelInState } from "../domain/booking";
-import { today, addDays, weekday, toInstant } from "../domain/time";
+import { defaultConfig, validateConfig, greetingFor } from "../domain/config.js";
+import { bookInState, cancelInState } from "../domain/booking.js";
+import { today, addDays, weekday, toInstant } from "../domain/time.js";
 import {
   checkAvailability,
   createAppointmentAction,
@@ -8,7 +8,7 @@ import {
   rescheduleAppointmentAction,
   cancelAppointmentAction,
   saveCallSummaryAction,
-} from "../domain/actions";
+} from "../domain/actions.js";
 
 export const STORAGE_KEY = "voicely.demo.v1";
 
@@ -280,7 +280,15 @@ export function createLocalRepository(
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        if (validState(parsed)) return parsed;
+        if (validState(parsed)) {
+          if (parsed.config?.agent?.name === "Mia" || parsed.config?.agent?.name === "Maya") {
+            parsed.config.agent.name = "Dhruv";
+            parsed.config.agent.prompt = parsed.config.agent.prompt?.replace(/\b(Mia|Maya)\b/g, "Dhruv");
+            parsed.config.agent.greeting = parsed.config.agent.greeting?.replace(/\b(Mia|Maya)\b/g, "Dhruv");
+            write(parsed);
+          }
+          return parsed;
+        }
       } catch {
         /* Recover only malformed demo data. */
       }
@@ -429,6 +437,7 @@ export function createLocalRepository(
         newConfig.id = id;
         newConfig.name = businessData.name || "New Business";
         newConfig.category = businessData.category || "General Services";
+        newConfig.description = businessData.description || businessData.agent?.prompt || "";
         newConfig.phone = businessData.phone || s.config.phone;
         newConfig.email = businessData.email || "hello@business.com";
         newConfig.address = businessData.address || "100 Main Street";
@@ -442,6 +451,7 @@ export function createLocalRepository(
           id,
           name: newConfig.name,
           category: newConfig.category,
+          description: newConfig.description,
           phone: newConfig.phone,
           email: newConfig.email,
           address: newConfig.address,

@@ -25,8 +25,8 @@ import {
 } from "lucide-react";
 import { useApp } from "../state/AppContext";
 import { PageTitle, Badge, Field, SectionHead } from "../components/ui";
-import { speechSupported } from "../services/speech";
-import { formatSlot } from "../domain/time";
+import { speechSupported } from "../services/speech.js";
+import { formatSlot } from "../domain/time.js";
 export default function Agent() {
   const app = useApp();
   const {

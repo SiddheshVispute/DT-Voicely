@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { createLocalRepository, STORAGE_KEY } from "../data/localRepository";
-import { newDialogue, message, replyTo } from "../domain/conversation";
-import { greetingFor } from "../domain/config";
-import { createSupabaseRepository } from "../data/supabaseRepository";
-import { createSpeech } from "../services/speech";
-import { createLocalVoice } from "../services/localVoice";
-import { createVapiVoice, getVapiCredentials } from "../services/vapiVoice";
+import { createLocalRepository, STORAGE_KEY } from "../data/localRepository.js";
+import { newDialogue, message, replyTo, parseDetails } from "../domain/conversation.js";
+import { greetingFor } from "../domain/config.js";
+import { createSupabaseRepository } from "../data/supabaseRepository.js";
+import { createSpeech } from "../services/speech.js";
+import { createLocalVoice } from "../services/localVoice.js";
+import { createVapiVoice, getVapiCredentials } from "../services/vapiVoice.js";
 import LiveCallModal from "../components/LiveCallModal";
 
 const Context = createContext(null);
@@ -136,6 +136,7 @@ export function AppProvider({ children }) {
       onError: voiceProblem,
       onInterim: setInterim,
       onPlaybackError: setVoiceError,
+      onLevel: setLevel,
     });
     localVoice.current = createLocalVoice({
       onText: (text) => sendRef.current?.(text),
@@ -394,6 +395,8 @@ export function AppProvider({ children }) {
     setVapiStatus("Connecting");
 
     try {
+      let bookedInCall = false;
+
       await vapiVoice.current.startCall({
         config: data.config,
         onStatus: (s) => {
@@ -415,24 +418,45 @@ export function AppProvider({ children }) {
           setError(err);
         },
         onToolCall: async (name, args) => {
-          if (name === "check_availability") {
+          const fn = (name || "").toLowerCase();
+          if (
+            fn === "check_availability" ||
+            fn === "check_schedule" ||
+            fn === "get_availability"
+          ) {
             return repository.checkAvailability?.(args);
-          } else if (name === "create_appointment") {
+          } else if (
+            fn === "create_appointment" ||
+            fn === "book_appointment" ||
+            fn === "schedule_appointment" ||
+            fn === "make_appointment"
+          ) {
             const res = await repository.book({ ...args, source: "ai_voice" });
+            bookedInCall = true;
             await reload();
             setToast(`Appointment booked for ${res.customer}!`);
             return res;
-          } else if (name === "create_lead") {
+          } else if (
+            fn === "create_lead" ||
+            fn === "capture_lead" ||
+            fn === "save_lead"
+          ) {
             const res = await repository.createLead?.({ ...args, source: "ai_voice" });
             await reload();
             setToast(`Lead captured for ${res.name}!`);
             return res;
-          } else if (name === "reschedule_appointment") {
+          } else if (
+            fn === "reschedule_appointment" ||
+            fn === "reschedule"
+          ) {
             const res = await repository.reschedule?.(args.appointmentId, args.newDate, args.newTime);
             await reload();
             setToast("Appointment rescheduled!");
             return res;
-          } else if (name === "cancel_appointment") {
+          } else if (
+            fn === "cancel_appointment" ||
+            fn === "cancel"
+          ) {
             const res = await repository.cancel?.(args.appointmentId, args.reason);
             await reload();
             setToast("Appointment cancelled.");
@@ -446,21 +470,61 @@ export function AppProvider({ children }) {
             const caller =
               messages.find((m) => m.role === "customer")?.text.slice(0, 30) ||
               "Website Voice Caller";
+
+            // Post-conversation booking check:
+            // If the appointment wasn't already booked during the call via a tool call,
+            // inspect the conversation transcript for confirmed booking details
+            let autoBookedAppointment = null;
+            if (!bookedInCall) {
+              const fullText = messages.map((m) => m.text).join(" \n ");
+              const hasBookingConfirmation =
+                /confirm|booked|scheduled|all set|look forward to seeing you|see you then|see you on|appointment is set|reservation is set|got you down for|booked you for/i.test(
+                  fullText,
+                );
+
+              if (hasBookingConfirmation) {
+                try {
+                  const parsed = parseDetails(fullText, data.config);
+                  if (parsed.date && parsed.time) {
+                    const cleanCustomer = (parsed.customer || caller || "Voice Customer")
+                      .replace(/[^\p{L}\p{M} .'-]/gu, " ")
+                      .trim() || "Voice Customer";
+
+                    const bookingPayload = {
+                      serviceId: parsed.serviceId || data.config.services?.[0]?.id,
+                      date: parsed.date,
+                      time: parsed.time,
+                      customer: cleanCustomer,
+                      phone: parsed.phone || "",
+                      source: "vapi_voice",
+                    };
+                    autoBookedAppointment = await repository.book(bookingPayload);
+                    bookedInCall = true;
+                  }
+                } catch (bookErr) {
+                  console.warn("Auto-booking on call-end notice:", bookErr.message);
+                }
+              }
+            }
+
             await repository.saveCallSummary?.({
-              caller,
-              summary: `Vapi voice conversation with ${messages.length} messages.`,
+              caller: autoBookedAppointment?.customer || caller,
+              summary: autoBookedAppointment
+                ? `Vapi voice conversation. Appointment booked for ${autoBookedAppointment.serviceName} on ${autoBookedAppointment.date} at ${autoBookedAppointment.time}.`
+                : `Vapi voice conversation with ${messages.length} messages.`,
               transcript: messages,
               source: "vapi_voice",
-              outcome: messages.some(
-                (m) =>
-                  m.text.toLowerCase().includes("confirmed") ||
-                  m.text.toLowerCase().includes("reference"),
-              )
-                ? "booked"
-                : "inquiry",
+              outcome: (bookedInCall || autoBookedAppointment) ? "booked" : "inquiry",
+              appointmentIds: autoBookedAppointment ? [autoBookedAppointment.id] : [],
             });
             await reload();
-            setToast("Vapi call summary saved in Call Logs.");
+            if (autoBookedAppointment) {
+              setToast(
+                `Appointment booked for ${autoBookedAppointment.customer} on ${autoBookedAppointment.date} at ${autoBookedAppointment.time}!`,
+              );
+            } else {
+              setToast("Vapi call summary saved in Call Logs.");
+            }
           }
         },
       });

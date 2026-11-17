@@ -1,5 +1,5 @@
-import { validateConfig } from "../domain/config";
-import { getSupabase } from "../services/integrations";
+import { validateConfig } from "../domain/config.js";
+import { getSupabase } from "../services/integrations.js";
 function check({ data, error }) {
   if (error) throw new Error(`Supabase: ${error.message}`);
   return data;

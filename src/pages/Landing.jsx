@@ -59,7 +59,7 @@ export default function Landing() {
           </div>
           <div className="hero-visual">
             <div className="hero-visual-top">
-              <span>MEET MIA · YOUR VIRTUAL RECEPTIONIST</span>
+              <span>MEET DHRUV · YOUR VIRTUAL RECEPTIONIST</span>
               <AudioLines size={20} />
             </div>
             <div className="call-orbit">
@@ -195,9 +195,9 @@ export default function Landing() {
               </div>
             </div>
             <div className="preview-line">
-              <span className="business-avatar">M</span>
+              <span className="business-avatar">D</span>
               <div>
-                <strong>Meet Mia, your receptionist</strong>
+                <strong>Meet Dhruv, your receptionist</strong>
                 <small>Knows your services. Respects your calendar.</small>
               </div>
               <AudioLines />

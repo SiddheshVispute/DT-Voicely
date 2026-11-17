@@ -33,6 +33,7 @@ import {
 import { useApp } from "../state/AppContext";
 import { Brand, Field, Badge } from "../components/ui";
 import ThemeToggle from "../components/ThemeToggle";
+import { buildAssistantPrompt } from "../services/vapiVoice";
 
 const CATEGORIES = [
   "Spa & Wellness",
@@ -79,6 +80,7 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   // STEP 1 - Account Creation State
   const [account, setAccount] = useState({
@@ -94,6 +96,7 @@ export default function Onboarding() {
   const [profile, setProfile] = useState({
     name: "",
     category: "Spa & Wellness",
+    description: "Dedicated to providing top-quality treatments, expert consultations, and exceptional care.",
     phone: "+1 (555) 234-5678",
     email: "",
     website: "https://mybusiness.com",
@@ -311,6 +314,7 @@ export default function Onboarding() {
         email: profile.email || account.workEmail,
         website: profile.website,
         address: profile.address,
+        description: profile.description || "",
         country: profile.country,
         timezone: profile.timezone,
         owner: {
@@ -340,10 +344,10 @@ export default function Onboarding() {
           selectedCalendar: integrations.googleCalendar.selectedCalendar,
         },
         agent: {
-          name: "Maya",
+          name: "Dhruv",
           tone: "Warm and professional",
-          greeting: `Hello! Welcome to ${profile.name || "our business"}. I'm Maya, your AI receptionist. How can I help you today?`,
-          prompt: "Be courteous, helpful, and concise. Verify availability and confirm appointment details.",
+          greeting: `Hello! Welcome to ${profile.name || "our business"}. I'm Dhruv, your AI receptionist. How can I help you today?`,
+          prompt: profile.description || "Be courteous, helpful, and concise. Verify availability and confirm appointment details.",
           faqs: [
             {
               id: "faq-1",
@@ -365,6 +369,29 @@ export default function Onboarding() {
   const webhookUrl = typeof window !== "undefined"
     ? `${window.location.origin}/api/vapi/webhook`
     : "https://yourdomain.com/api/vapi/webhook";
+
+  const currentSetupPrompt = buildAssistantPrompt({
+    name: profile.name || "My Business",
+    category: profile.category,
+    description: profile.description || "",
+    address: profile.address,
+    phone: profile.phone,
+    email: profile.email || account.workEmail,
+    timezone: profile.timezone,
+    services,
+    hours,
+    agent: {
+      name: "Dhruv",
+      greeting: `Hello! Welcome to ${profile.name || "our business"}. I'm Dhruv, your AI receptionist. How can I help you today?`,
+      faqs: [
+        {
+          id: "faq-1",
+          question: "Where are you located and is parking available?",
+          answer: `We are located at ${profile.address || "our main facility"}. Dedicated customer parking is available.`,
+        },
+      ],
+    },
+  });
 
   const stepTitles = [
     "Account Creation",
@@ -543,7 +570,7 @@ export default function Onboarding() {
             </div>
             <h2>Tell us about your establishment.</h2>
             <p>
-              Your AI receptionist Maya uses this profile to introduce your company, answer location questions,
+              Your AI receptionist Dhruv uses this profile to introduce your company, answer location questions,
               and correctly format customer appointment times.
             </p>
 
@@ -634,6 +661,19 @@ export default function Onboarding() {
                     required
                   />
                 </div>
+              </Field>
+
+              <Field
+                label="Business Overview & Description"
+                hint="Detailed business description used by your AI receptionist to answer customer inquiries"
+              >
+                <textarea
+                  rows={3}
+                  value={profile.description}
+                  onChange={(e) => updateProfile("description", e.target.value)}
+                  placeholder="e.g. We are a premier wellness spa offering massage therapy, skincare treatments, and holistic health consultations..."
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", resize: "vertical", fontSize: "0.9rem", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)" }}
+                />
               </Field>
 
               <div className="field-row">
@@ -1107,6 +1147,48 @@ export default function Onboarding() {
                     </p>
                     <code className="webhook-code-box">{webhookUrl}</code>
                   </div>
+
+                  {/* Vapi Assistant System Prompt with 5-Step Context */}
+                  <div className="webhook-guide-card" style={{ marginTop: "1rem", borderColor: "rgba(16, 185, 129, 0.3)" }}>
+                    <div className="guide-header">
+                      <strong style={{ color: "var(--ink)", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Sparkles size={16} color="#10b981" /> Assistant System Prompt (5-Step Business Context):
+                      </strong>
+                      <button
+                        type="button"
+                        className="button secondary small"
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentSetupPrompt);
+                          setCopiedPrompt(true);
+                          setTimeout(() => setCopiedPrompt(false), 2000);
+                        }}
+                      >
+                        {copiedPrompt ? <Check size={14} /> : <Copy size={14} />}
+                        {copiedPrompt ? "Copied" : "Copy Prompt for Vapi"}
+                      </button>
+                    </div>
+                    <p>
+                      Voicely dynamically injects your full 5-step business description, services, and hours during web calls.
+                      You can also paste this prompt into your Vapi Dashboard (<em>Assistants &gt; System Prompt</em>) so your Vapi assistant has it permanently.
+                    </p>
+                    <details style={{ marginTop: "6px" }}>
+                      <summary style={{ cursor: "pointer", fontSize: "0.82rem", color: "var(--primary)" }}>
+                        View system prompt preview
+                      </summary>
+                      <pre style={{
+                        marginTop: "6px",
+                        padding: "8px 12px",
+                        background: "rgba(0,0,0,0.3)",
+                        borderRadius: "6px",
+                        fontSize: "0.78rem",
+                        whiteSpace: "pre-wrap",
+                        maxHeight: "160px",
+                        overflowY: "auto"
+                      }}>
+                        {currentSetupPrompt}
+                      </pre>
+                    </details>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1177,6 +1259,14 @@ export default function Onboarding() {
                     <span>Timezone:</span>
                     <span>{profile.timezone}</span>
                   </div>
+                  {profile.description && (
+                    <div className="summary-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
+                      <span>Business Overview & Description:</span>
+                      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--ink)", lineHeight: 1.4 }}>
+                        {profile.description}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

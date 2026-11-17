@@ -7,7 +7,7 @@ import {
   toInstant,
   formatSlot,
   localParts,
-} from "./time";
+} from "./time.js";
 export class BookingError extends Error {
   constructor(code, message) {
     super(message);
@@ -23,8 +23,14 @@ export function validateBooking(state, input, now = new Date()) {
     reject("customer", "Please provide a customer name with 2–80 letters.");
   if (input.phone && !/^\+?[\d ()-]{7,20}$/.test(input.phone))
     reject("phone", "Please provide a valid phone number or leave it blank.");
-  const service = c.services.find((s) => s.id === input.serviceId);
+  const service = c.services.find(
+    (s) =>
+      s.id === input.serviceId ||
+      s.name.toLowerCase() === input.serviceId?.trim().toLowerCase() ||
+      (input.service && s.name.toLowerCase() === input.service?.trim().toLowerCase()),
+  );
   if (!service) reject("service", "Choose an available service.");
+  input.serviceId = service.id;
   let start, date;
   try {
     if (
