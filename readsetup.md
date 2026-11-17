@@ -124,12 +124,9 @@ Voicely includes a pre-configured `.env.example` file that tracks all necessary 
 
    # Backend Server Configuration
    PORT=3000
-   HOST=0.0.0.0
+   HOST=127.0.0.1
    NODE_ENV=development
    CORS_ORIGIN=*
-
-   # Frontend API URL
-   VITE_API_URL=http://localhost:3000
 
    # -----------------------------------------------------------------------------
    # Supabase Cloud Database (Optional)
@@ -139,17 +136,15 @@ Voicely includes a pre-configured `.env.example` file that tracks all necessary 
    VITE_SUPABASE_ANON_KEY=
 
    # -----------------------------------------------------------------------------
-   # Vapi AI Voice Receptionist (Optional / Pre-configured)
+   # Vapi AI Voice Receptionist (Optional)
    # -----------------------------------------------------------------------------
-   VITE_VAPI_PRIVATE_KEY=67ed8e7e-c1a0-43cc-8e19-bd704b25db43
-   VITE_VAPI_PUBLIC_KEY=79116357-dff7-4def-b824-2049568b2fe5
-   VITE_VAPI_ASSISTANT_ID=46a9ff9c-a02f-4233-a85c-6d129dd69724
-   VAPI_SERVER_SECRET=
+   VITE_VAPI_PUBLIC_KEY=
+   VITE_VAPI_ASSISTANT_ID=
    ```
 
-   - **Backend Settings**: `PORT=3000`, `HOST=0.0.0.0`.
+   - **Backend Settings**: `PORT=3000`, `HOST=127.0.0.1`.
    - **Supabase (Optional)**: If you leave `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` blank, Voicely automatically boots in **Demo Mode**. All appointments, settings, and logs are persisted locally in your browser (LocalStorage / IndexedDB with Web Locks concurrency). No external database setup is required!
-   - **Vapi AI Voice**: Pre-populated with working test credentials for instant browser voice conversation. You can replace them with your own from [dashboard.vapi.ai](https://dashboard.vapi.ai) anytime in **Settings → Integrations**.
+   - **Vapi AI Voice**: For browser voice, use your public client key and assistant ID from [dashboard.vapi.ai](https://dashboard.vapi.ai). You can also enter them in **Settings → Integrations**.
 
 ---
 

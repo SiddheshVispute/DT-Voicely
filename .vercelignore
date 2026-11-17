@@ -8,8 +8,7 @@ playwright-report
 screenshots
 tests
 .env
-.env.local
-.env.*.local
+.env.*
 .vscode
 .idea
 *.zip
